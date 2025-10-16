@@ -1,4 +1,4 @@
-package com.aserdipanda.synapse
+package com.aserdipanda.synapse.service.sms
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -6,11 +6,12 @@ import android.content.Intent
 import android.provider.Telephony
 import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.aserdipanda.synapse.core.common.Constants
+import com.aserdipanda.synapse.core.network.NetworkModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
@@ -18,7 +19,7 @@ class SmsReceiver : BroadcastReceiver() {
 
     private val targetSenders = listOf("7515")
     private val broadcastList = listOf("")
-    private val client = OkHttpClient()
+    private val client by lazy { NetworkModule.provideOkHttpClient() }
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
@@ -33,9 +34,9 @@ class SmsReceiver : BroadcastReceiver() {
                     val sender = smsMessage.displayOriginatingAddress ?: ""
                     val messageBody = smsMessage.messageBody
 
-                    val localIntent = Intent(SmsListenerService.ACTION_SMS_RECEIVED).apply {
-                        putExtra(SmsListenerService.EXTRA_SMS_SENDER, sender)
-                        putExtra(SmsListenerService.EXTRA_SMS_BODY, messageBody)
+                    val localIntent = Intent(Constants.ACTION_SMS_RECEIVED).apply {
+                        putExtra(Constants.EXTRA_SMS_SENDER, sender)
+                        putExtra(Constants.EXTRA_SMS_BODY, messageBody)
                     }
                     CoroutineScope(Dispatchers.Main).launch {
                         LocalBroadcastManager.getInstance(context).sendBroadcast(localIntent)

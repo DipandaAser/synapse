@@ -1,4 +1,5 @@
 package com.aserdipanda.synapse
+
 import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -28,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.aserdipanda.synapse.core.common.Constants
+import com.aserdipanda.synapse.service.sms.SmsListenerService
 import com.aserdipanda.synapse.ui.theme.SMSListenerAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -106,14 +109,14 @@ fun SmsListenerScreen(onStartService: () -> Unit, onStopService: () -> Unit) {
     DisposableEffect(Unit) {
         val messageReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                val sender = intent?.getStringExtra(SmsListenerService.EXTRA_SMS_SENDER) ?: "Unknown"
-                val body = intent?.getStringExtra(SmsListenerService.EXTRA_SMS_BODY) ?: "No content"
+                val sender = intent?.getStringExtra(Constants.EXTRA_SMS_SENDER) ?: "Unknown"
+                val body = intent?.getStringExtra(Constants.EXTRA_SMS_BODY) ?: "No content"
                 lastMessage = "From: $sender\n\n$body"
             }
         }
         // Register the receiver
         LocalBroadcastManager.getInstance(context).registerReceiver(
-            messageReceiver, IntentFilter(SmsListenerService.ACTION_SMS_RECEIVED)
+            messageReceiver, IntentFilter(Constants.ACTION_SMS_RECEIVED)
         )
         // This block is called when the composable is disposed (e.g., screen navigates away)
         onDispose {

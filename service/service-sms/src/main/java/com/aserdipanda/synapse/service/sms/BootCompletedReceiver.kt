@@ -1,4 +1,4 @@
-package com.aserdipanda.synapse
+package com.aserdipanda.synapse.service.sms
 
 import android.content.BroadcastReceiver
 import android.content.Context

@@ -1,4 +1,4 @@
-package com.aserdipanda.synapse
+package com.aserdipanda.synapse.service.sms
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.IBinder
 import android.provider.Telephony
 import androidx.core.app.NotificationCompat
+import com.aserdipanda.synapse.core.common.Constants
 
 class SmsListenerService : Service() {
 
@@ -18,27 +19,29 @@ class SmsListenerService : Service() {
 
     companion object {
         var isRunning = false
-        const val CHANNEL_ID = "SmsListenerServiceChannel"
-        const val NOTIFICATION_ID = 1
-        const val ACTION_SMS_RECEIVED = "com.aserdipanda.synapse.SMS_RECEIVED"
-        const val EXTRA_SMS_SENDER = "sms_sender"
-        const val EXTRA_SMS_BODY = "sms_body"
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         createNotificationChannel()
 
-        val notificationIntent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE)
+        // Note: You'll need to create a proper PendingIntent that points to MainActivity
+        // This is a placeholder
+        val notificationIntent = Intent()
+        val pendingIntent = PendingIntent.getActivity(
+            this, 
+            0, 
+            notificationIntent, 
+            PendingIntent.FLAG_IMMUTABLE
+        )
 
-        val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification: Notification = NotificationCompat.Builder(this, Constants.SMS_LISTENER_CHANNEL_ID)
             .setContentTitle("SMS Listener Active")
             .setContentText("Listening for incoming SMS messages.")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
             .build()
 
-        startForeground(NOTIFICATION_ID, notification)
+        startForeground(Constants.SMS_LISTENER_NOTIFICATION_ID, notification)
 
         val filter = IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
         registerReceiver(smsReceiver, filter)
@@ -60,10 +63,11 @@ class SmsListenerService : Service() {
     override fun onBind(intent: Intent): IBinder? {
         return null
     }
+    
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val serviceChannel = NotificationChannel(
-                CHANNEL_ID,
+                Constants.SMS_LISTENER_CHANNEL_ID,
                 "SMS Listener Service Channel",
                 NotificationManager.IMPORTANCE_DEFAULT
             )

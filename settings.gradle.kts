@@ -21,3 +21,16 @@ dependencyResolutionManagement {
 
 rootProject.name = "Synapse"
 include(":app")
+
+// Core modules
+include(":core:core-common")
+include(":core:core-network")
+
+// Data modules
+include(":data:data-triggers")
+
+// Feature modules
+include(":feature:feature-triggers")
+
+// Service modules
+include(":service:service-sms")
