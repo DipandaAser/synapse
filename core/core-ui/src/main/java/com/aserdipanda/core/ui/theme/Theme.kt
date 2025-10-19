@@ -1,5 +1,5 @@
 // In ui/theme/Theme.kt
-package com.aserdipanda.synapse.ui.theme
+package com.aserdipanda.core.ui.theme
 
 import android.app.Activity
 import android.os.Build
@@ -11,7 +11,6 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat // Make sure this import is present
@@ -29,7 +28,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun SMSListenerAppTheme(
+fun SynapseAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true, // Set to false if you don't want dynamic colors on Android 12+
     content: @Composable () -> Unit

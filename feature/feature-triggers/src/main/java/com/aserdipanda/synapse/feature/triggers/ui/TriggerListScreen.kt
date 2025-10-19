@@ -1,137 +1,108 @@
 package com.aserdipanda.synapse.feature.triggers.ui
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.aserdipanda.synapse.data.triggers.local.TriggerEntity
+import com.aserdipanda.core.ui.theme.SynapseAppTheme
 
+/**
+ * The main screen that holds the Scaffold (top bar, content, and FAB).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TriggerListScreen(
-    triggers: List<TriggerEntity>,
-    isLoading: Boolean,
+    onStartListening: () -> Unit,
+    onStopListening: () -> Unit,
     onAddTrigger: () -> Unit,
-    onEditTrigger: (TriggerEntity) -> Unit,
-    onDeleteTrigger: (TriggerEntity) -> Unit,
-    onToggleTrigger: (Long, Boolean) -> Unit,
-    modifier: Modifier = Modifier
 ) {
+    // This state would eventually come from your ViewModel
+    var isListening by remember { mutableStateOf(true) }
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = onAddTrigger) {
-                Text("+", style = MaterialTheme.typography.headlineMedium)
-            }
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when {
-                isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                triggers.isEmpty() -> {
-                    Text(
-                        text = "No triggers yet. Tap + to add one.",
-                        modifier = Modifier.align(Alignment.Center),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(triggers) { trigger ->
-                            TriggerItem(
-                                trigger = trigger,
-                                onEdit = { onEditTrigger(trigger) },
-                                onDelete = { onDeleteTrigger(trigger) },
-                                onToggle = { onToggleTrigger(trigger.id, !trigger.isActive) }
-                            )
-                        }
+        topBar = {
+            TriggerTopAppBar(
+                isListening = isListening,
+                onListenToggled = { enabled ->
+                    isListening = enabled
+                    if (enabled) {
+                        onStartListening()
+                    } else {
+                        onStopListening()
                     }
                 }
-            }
+            )
+        },
+        floatingActionButton = {
+            val tooltipState = rememberTooltipState()
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                tooltip = {
+                    PlainTooltip {
+                        Text("Add Trigger")
+                    }
+                },
+                state = tooltipState,
+            ) {
+            FloatingActionButton(onClick = onAddTrigger) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Trigger",
+                )
+            }}
         }
+    ) { innerPadding ->
+        // The main content of your screen (like the list of triggers)
+        // will go here. For now, it's just a placeholder.
+        Text(
+            modifier = Modifier.padding(innerPadding),
+            text = "Your trigger list will go here."
+        )
     }
 }
 
+/**
+ * The custom Top App Bar that matches your design.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TriggerItem(
-    trigger: TriggerEntity,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onToggle: () -> Unit,
-    modifier: Modifier = Modifier
+fun TriggerTopAppBar(
+    isListening: Boolean,
+    onListenToggled: (Boolean) -> Unit
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = trigger.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Switch(
-                    checked = trigger.isActive,
-                    onCheckedChange = { onToggle() }
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
+    TopAppBar(
+        title = {
             Text(
-                text = "Sender: ${trigger.senderPattern}",
-                style = MaterialTheme.typography.bodyMedium
+                text = "Synapse",
+                style = MaterialTheme.typography.titleLarge
             )
-            
-            if (trigger.messagePattern != null) {
-                Text(
-                    text = "Message: ${trigger.messagePattern}",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            
-            Text(
-                text = "Targets: ${trigger.targetPhoneNumbers.joinToString(", ")}",
-                style = MaterialTheme.typography.bodySmall
+        },
+        actions = {
+            Text("Listen")
+            Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+            Switch(
+                checked = isListening,
+                onCheckedChange = onListenToggled
             )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                TextButton(onClick = onEdit) {
-                    Text("Edit")
-                }
-                TextButton(onClick = onDelete) {
-                    Text("Delete")
-                }
-            }
-        }
+        },
+    )
+}
+
+/**
+ * A preview function so you can see your UI in Android Studio's design panel.
+ */
+@Preview(showBackground = true)
+@Composable
+fun TriggerListScreenPreview() {
+    SynapseAppTheme {
+        TriggerListScreen(
+            onStartListening = {},
+            onStopListening = {},
+            onAddTrigger = {}
+        )
     }
 }

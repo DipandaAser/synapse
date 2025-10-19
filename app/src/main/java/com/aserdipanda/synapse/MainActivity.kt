@@ -29,9 +29,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.aserdipanda.core.ui.theme.SynapseAppTheme
 import com.aserdipanda.synapse.core.common.Constants
+import com.aserdipanda.synapse.feature.triggers.ui.TriggerListScreen
 import com.aserdipanda.synapse.service.sms.SmsListenerService
-import com.aserdipanda.synapse.ui.theme.SMSListenerAppTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -48,15 +49,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            SMSListenerAppTheme {
-                SmsListenerScreen(
+            SynapseAppTheme {
+                TriggerListScreen(
+                    onStartListening = {},
+                    onStopListening = {},
+                    onAddTrigger = {}
+                )
+                /*SmsListenerScreen(
                     onStartService = {
                         checkAndStartService()
                     },
                     onStopService = {
                         stopSmsListenerService()
                     }
-                )
+                )*/
             }
         }
     }
@@ -177,7 +183,7 @@ fun SmsListenerScreen(onStartService: () -> Unit, onStopService: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
-    SMSListenerAppTheme {
+    SynapseAppTheme {
         SmsListenerScreen(onStartService = {}, onStopService = {})
     }
 }

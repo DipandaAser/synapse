@@ -51,6 +51,7 @@ android {
 dependencies {
     // Module dependencies
     implementation(project(":core:core-common"))
+    implementation(project(":core:core-ui"))
     implementation(project(":core:core-network"))
     implementation(project(":data:data-triggers"))
     implementation(project(":feature:feature-triggers"))

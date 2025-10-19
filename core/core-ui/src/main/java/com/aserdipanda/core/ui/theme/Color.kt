@@ -1,4 +1,4 @@
-package com.aserdipanda.synapse.ui.theme
+package com.aserdipanda.core.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

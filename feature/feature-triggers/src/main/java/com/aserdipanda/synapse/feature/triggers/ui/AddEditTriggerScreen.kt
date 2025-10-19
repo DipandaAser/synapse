@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.aserdipanda.synapse.data.triggers.local.TriggerEntity
 
@@ -104,4 +105,28 @@ fun AddEditTriggerScreen(
             }
         }
     }
+}
+
+@Preview(showBackground = true, name = "Add Trigger Screen")
+@Composable
+fun AddTriggerScreenPreview() {
+    AddEditTriggerScreen(
+        trigger = null,
+        onSave = {},
+        onCancel = {}
+    )
+}
+
+@Preview(showBackground = true, name = "Edit Trigger Screen")
+@Composable
+fun EditTriggerScreenPreview() {
+    val sampleTrigger = TriggerEntity(
+        id = 1,
+        name = "Bank Alert",
+        senderPattern = "7515",
+        webhookUrl = "https://example.com/webhook",
+        targetPhoneNumbers = listOf("+1234567890"),
+        isActive = true
+    )
+    AddEditTriggerScreen(trigger = sampleTrigger, onSave = {}, onCancel = {})
 }
