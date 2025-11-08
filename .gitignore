@@ -137,3 +137,5 @@ service/service-sms/build/
 
 # Gradle wrapper jar (uncomment if you want to commit it)
 # !gradle/wrapper/gradle-wrapper.jar
+
+local-docs/
