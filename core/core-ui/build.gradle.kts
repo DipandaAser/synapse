@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.aserdipanda.core.ui"
+    namespace = "com.aserdipanda.synapse.core.ui"
     compileSdk {
         version = release(36)
     }

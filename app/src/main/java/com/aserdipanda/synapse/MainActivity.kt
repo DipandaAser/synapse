@@ -31,6 +31,7 @@ import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.aserdipanda.core.ui.theme.SynapseAppTheme
 import com.aserdipanda.synapse.core.common.Constants
+import com.aserdipanda.synapse.feature.triggers.ui.Trigger
 import com.aserdipanda.synapse.feature.triggers.ui.TriggerListScreen
 import com.aserdipanda.synapse.service.sms.SmsListenerService
 
@@ -50,19 +51,45 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             SynapseAppTheme {
-                TriggerListScreen(
-                    onStartListening = {},
-                    onStopListening = {},
-                    onAddTrigger = {}
+                // This state will eventually come from a ViewModel
+                val isServiceActive by remember { mutableStateOf(SmsListenerService.isRunning) }
+
+                // This is a fake list for now. Your ViewModel will provide the real list.
+                val fakeTriggers = listOf(
+                    Trigger(
+                        1,
+                        "Bank Alert Forwarder",
+                        "7777",
+                        "\"transaction\"",
+                        "api.webhook.com/bank",
+                        "2h ago",
+                        true
+                    ),
+                    Trigger(2, "OTP Extractor", "Any", "\"OTP\" or \"code\"", "myapp.com/otp", null, true),
+                    Trigger(3, "Order Updates", "AMAZON", "\"delivered\"", "orders.api.com/status", null, false)
                 )
-                /*SmsListenerScreen(
-                    onStartService = {
-                        checkAndStartService()
+
+                TriggerListScreen(
+                    isServiceActive = isServiceActive,
+                    triggers = fakeTriggers,
+                    onToggleService = { isEnabled ->
+                        if (isEnabled) {
+                            checkAndStartService()
+                            isServiceActive
+                        } else {
+                            stopSmsListenerService()
+                        }
                     },
-                    onStopService = {
-                        stopSmsListenerService()
+                    onAddTrigger = {
+                        Toast.makeText(this, "Add Trigger Clicked!", Toast.LENGTH_SHORT).show()
+                    },
+                    onEditTrigger = { trigger ->
+                        Toast.makeText(this, "Edit ${trigger.name}", Toast.LENGTH_SHORT).show()
+                    },
+                    onToggleTrigger = { trigger, isEnabled ->
+                        Toast.makeText(this, "${trigger.name} toggled to $isEnabled", Toast.LENGTH_SHORT).show()
                     }
-                )*/
+                )
             }
         }
     }
