@@ -1,4 +1,5 @@
 package com.aserdipanda.synapse
+
 import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -11,6 +12,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
@@ -28,11 +30,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.aserdipanda.synapse.ui.theme.SMSListenerAppTheme
+import com.aserdipanda.core.ui.theme.SynapseAppTheme
+import com.aserdipanda.synapse.core.common.Constants
+import com.aserdipanda.synapse.data.triggers.local.TriggerEntity
+import com.aserdipanda.synapse.feature.triggers.TriggersViewModel
+import com.aserdipanda.synapse.feature.triggers.TriggersViewModelFactory
+import com.aserdipanda.synapse.feature.triggers.ui.Trigger
+import com.aserdipanda.synapse.feature.triggers.ui.TriggerListScreen
+import com.aserdipanda.synapse.service.sms.SmsListenerService
 
 class MainActivity : ComponentActivity() {
 
-    // A modern way to request permissions
+    private val viewModel: TriggersViewModel by viewModels {
+        TriggersViewModelFactory((application as SynapseApp).triggersRepository)
+    }
+
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             if (permissions.all { it.value }) {
@@ -45,13 +57,44 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            SMSListenerAppTheme {
-                SmsListenerScreen(
-                    onStartService = {
-                        checkAndStartService()
+            SynapseAppTheme {
+                // Collect state from ViewModel
+                val isServiceActive by viewModel.isSmsListenerEnabled.collectAsState()
+                val triggers by viewModel.triggers.collectAsState()
+
+                // Convert TriggerEntity to UI Trigger model
+                val uiTriggers = triggers.map { entity ->
+                    Trigger(
+                        id = entity.id.toInt(),
+                        name = entity.name,
+                        sender = entity.senderPattern,
+                        contains = entity.messagePattern ?: "",
+                        url = entity.webhookUrl,
+                        lastTriggered = null, // TODO: Add lastTriggered field to TriggerEntity
+                        isEnabled = entity.isActive
+                    )
+                }
+
+                TriggerListScreen(
+                    isServiceActive = isServiceActive,
+                    triggers = uiTriggers,
+                    onToggleService = { isEnabled ->
+                        if (isEnabled) {
+                            checkAndStartService()
+                        } else {
+                            stopSmsListenerService()
+                        }
+                        viewModel.setSmsListenerEnabled(isEnabled)
                     },
-                    onStopService = {
-                        stopSmsListenerService()
+                    onAddTrigger = {
+                        Toast.makeText(this, "Add Trigger Clicked!", Toast.LENGTH_SHORT).show()
+                    },
+                    onEditTrigger = { trigger ->
+                        Toast.makeText(this, "Edit ${trigger.name}", Toast.LENGTH_SHORT).show()
+                    },
+                    onToggleTrigger = { trigger, isEnabled ->
+                        viewModel.toggleTriggerStatus(trigger.id.toLong(), isEnabled)
+                        Toast.makeText(this, "${trigger.name} toggled to $isEnabled", Toast.LENGTH_SHORT).show()
                     }
                 )
             }
@@ -90,91 +133,5 @@ class MainActivity : ComponentActivity() {
         val serviceIntent = Intent(this, SmsListenerService::class.java)
         stopService(serviceIntent)
         Toast.makeText(this, "SMS Listener stopped", Toast.LENGTH_SHORT).show()
-    }
-}
-
-@Composable
-fun SmsListenerScreen(onStartService: () -> Unit, onStopService: () -> Unit) {
-    // State variables that Compose will automatically observe for changes
-    var serviceStatus by remember { mutableStateOf("Checking status...") }
-    var lastMessage by remember { mutableStateOf("No message received yet.") }
-    var isRunning by remember { mutableStateOf(SmsListenerService.isRunning) }
-    val context = LocalContext.current
-
-    // This effect runs when the composable enters the screen
-    // and cleans up when it leaves.
-    DisposableEffect(Unit) {
-        val messageReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                val sender = intent?.getStringExtra(SmsListenerService.EXTRA_SMS_SENDER) ?: "Unknown"
-                val body = intent?.getStringExtra(SmsListenerService.EXTRA_SMS_BODY) ?: "No content"
-                lastMessage = "From: $sender\n\n$body"
-            }
-        }
-        // Register the receiver
-        LocalBroadcastManager.getInstance(context).registerReceiver(
-            messageReceiver, IntentFilter(SmsListenerService.ACTION_SMS_RECEIVED)
-        )
-        // This block is called when the composable is disposed (e.g., screen navigates away)
-        onDispose {
-            LocalBroadcastManager.getInstance(context).unregisterReceiver(messageReceiver)
-        }
-    }
-
-    // This will update the UI based on the service's static flag
-    LaunchedEffect(SmsListenerService.isRunning) {
-        serviceStatus = if (SmsListenerService.isRunning) {
-            "Service is running"
-        } else {
-            "Service is stopped"
-        }
-    }
-
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = serviceStatus,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(text = "Last Received Message:")
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = lastMessage,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 100.dp)
-                    .background(Color(0xFFF1F1F1))
-                    .padding(12.dp)
-            )
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Button(enabled = !isRunning, onClick = onStartService) {
-
-                    Text("Start Listening")
-                }
-                Button(enabled = isRunning, onClick = onStopService) {
-                    Text("Stop Listening")
-                }
-            }
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    SMSListenerAppTheme {
-        SmsListenerScreen(onStartService = {}, onStopService = {})
     }
 }
