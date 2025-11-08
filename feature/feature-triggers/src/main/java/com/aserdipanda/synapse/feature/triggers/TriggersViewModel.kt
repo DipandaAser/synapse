@@ -19,8 +19,12 @@ class TriggersViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     
+    private val _isSmsListenerEnabled = MutableStateFlow(false)
+    val isSmsListenerEnabled: StateFlow<Boolean> = _isSmsListenerEnabled.asStateFlow()
+
     init {
         loadTriggers()
+        loadServiceState()
     }
     
     private fun loadTriggers() {
@@ -33,6 +37,19 @@ class TriggersViewModel(
         }
     }
     
+    private fun loadServiceState() {
+        viewModelScope.launch {
+            _isSmsListenerEnabled.value = repository.isSmsListenerEnabled()
+        }
+    }
+
+    fun setSmsListenerEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setSmsListenerEnabled(enabled)
+            _isSmsListenerEnabled.value = enabled
+        }
+    }
+
     fun addTrigger(trigger: TriggerEntity) {
         viewModelScope.launch {
             repository.insertTrigger(trigger)

@@ -1,28 +1,33 @@
 package com.aserdipanda.synapse
 
 import android.app.Application
-import androidx.room.Room
+import android.util.Log
 import com.aserdipanda.synapse.data.triggers.TriggersRepository
+import com.aserdipanda.synapse.data.triggers.local.DatabaseProvider
 import com.aserdipanda.synapse.data.triggers.local.TriggerDatabase
 
 class SynapseApp : Application() {
     
-    // Database instance
+    companion object {
+        private const val TAG = "SynapseApp"
+    }
+
     val database: TriggerDatabase by lazy {
-        Room.databaseBuilder(
-            applicationContext,
-            TriggerDatabase::class.java,
-            "synapse_database"
-        ).build()
+        Log.d(TAG, "Initializing database...")
+        DatabaseProvider.getDatabase(applicationContext)
     }
     
     // Repository instance
     val triggersRepository: TriggersRepository by lazy {
-        TriggersRepository(database.triggerDao())
+        Log.d(TAG, "Initializing repository...")
+        TriggersRepository(database.triggerDao(), database.appSettingDao())
     }
     
     override fun onCreate() {
         super.onCreate()
-        // Initialize any app-level components here
+        Log.d(TAG, "SynapseApp onCreate() called")
+        // Initialize database eagerly to ensure it's created on first launch
+        database
+        Log.d(TAG, "Database initialization triggered")
     }
 }

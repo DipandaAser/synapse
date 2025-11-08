@@ -4,8 +4,8 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "app_settings")
-class AppSettingEntity {
-    @PrimaryKey()
-    var key: String? = null
-    var value: String? = null
-}
+data class AppSettingEntity(
+    @PrimaryKey
+    val key: String,
+    val value: String
+)

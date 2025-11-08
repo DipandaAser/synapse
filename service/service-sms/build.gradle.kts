@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    id("com.google.devtools.ksp") version "2.0.21-1.0.28"
 }
 
 android {
@@ -39,6 +40,11 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
     
+    // Room
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+
     // OkHttp
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     

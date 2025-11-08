@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/DipandaAser/synapse/blob/main/ARCHITECTURE.md
+    about: Check out the project architecture documentation
+  - name: ❓ Questions & Discussions
+    url: https://github.com/DipandaAser/synapse/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 🚀 Quick Start Guide
+    url: https://github.com/DipandaAser/synapse/blob/main/QUICKSTART.md
+    about: Get started with the project

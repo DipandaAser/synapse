@@ -30,7 +30,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun SynapseAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true, // Set to false if you don't want dynamic colors on Android 12+
+    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

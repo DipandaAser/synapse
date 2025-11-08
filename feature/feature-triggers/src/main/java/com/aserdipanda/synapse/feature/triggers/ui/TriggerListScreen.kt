@@ -21,9 +21,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aserdipanda.core.ui.theme.SynapseAppTheme
-// We no longer need the R file import
 
-// This is a placeholder data class.
+
 data class Trigger(
     val id: Int,
     val name: String,
@@ -58,13 +57,13 @@ fun TriggerListScreen(
             val tooltipState = rememberTooltipState()
             TooltipBox(
                 positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                tooltip = { PlainTooltip { Text("Add Trigger") } }, // Hardcoded string
+                tooltip = { PlainTooltip { Text("Add Trigger") } },
                 state = tooltipState,
             ) {
                 FloatingActionButton(onClick = onAddTrigger) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "Add Trigger" // Hardcoded string
+                        contentDescription = "Add Trigger"
                     )
                 }
             }
@@ -106,12 +105,12 @@ fun TriggerTopAppBar(
     TopAppBar(
         title = {
             Text(
-                text = "My SMS Triggers", // Hardcoded string
+                text = "My SMS Triggers",
                 style = MaterialTheme.typography.titleLarge
             )
         },
         actions = {
-            Text("Listen") // Hardcoded string
+            Text("Listen")
             Spacer(modifier = Modifier.padding(horizontal = 4.dp))
             Switch(
                 checked = isListening,
@@ -129,9 +128,9 @@ fun StatusBanner(isActive: Boolean, enabledTriggerCount: Int) {
     val backgroundColor = if (isActive) Color(0xFFE6F7EA) else Color(0xFFFFF0F0)
     val contentColor = if (isActive) Color(0xFF34A853) else Color.Red
     val text = if (isActive) {
-        "SMS Listener Active • $enabledTriggerCount triggers enabled" // Hardcoded string
+        "SMS Listener Active • $enabledTriggerCount triggers enabled"
     } else {
-        "SMS Listener Inactive" // Hardcoded string
+        "SMS Listener Inactive"
     }
 
     Row(
@@ -176,7 +175,6 @@ fun TriggerCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // --- Top Row: Title and Switch ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Top,
@@ -196,35 +194,28 @@ fun TriggerCard(
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- Middle Section: Details ---
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TriggerInfoRow(
                     icon = Icons.Default.Phone,
-                    text = "From: ${trigger.sender}" // Hardcoded string
+                    text = "From: ${trigger.sender}"
                 )
                 TriggerInfoRow(
                     icon = Icons.Default.CheckCircle,
-                    text = "Contains: ${trigger.contains}" // Hardcoded string
+                    text = "Contains: ${trigger.contains}"
                 )
                 TriggerInfoRow(
                     icon = Icons.Default.ArrowForward,
-                    text = "POST → ${trigger.url}" // Hardcoded string
+                    text = "POST → ${trigger.url}"
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- Footer: Status and Chevron ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 TriggerStatusText(trigger = trigger)
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowUp,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }
@@ -259,17 +250,17 @@ fun TriggerStatusText(trigger: Trigger) {
     val (icon, text, color) = when {
         !trigger.isEnabled -> Triple(
             Icons.Outlined.KeyboardArrowUp,
-            "Disabled", // Hardcoded string
+            "Disabled",
             MaterialTheme.colorScheme.onSurfaceVariant
         )
         trigger.lastTriggered != null -> Triple(
             Icons.Outlined.CheckCircle,
-            "Last triggered ${trigger.lastTriggered}", // Hardcoded string
-            Color(0xFF34A853) // Green
+            "Last triggered ${trigger.lastTriggered}",
+            Color(0xFF34A853)
         )
         else -> Triple(
             Icons.Outlined.CheckCircle,
-            "Never triggered", // Hardcoded string
+            "Never triggered",
             MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -291,13 +282,10 @@ fun TriggerStatusText(trigger: Trigger) {
 }
 
 
-/**
- * A preview function to see the new UI
- */
+
 @Preview(showBackground = true)
 @Composable
 fun TriggerListScreenPreview() {
-    // A fake list of triggers to use for the preview
     val fakeTriggers = listOf(
         Trigger(1, "Bank Alert Forwarder", "7777", "\"transaction\"", "api.webhook.com/bank", "2h ago", true),
         Trigger(2, "OTP Extractor", "Any", "\"OTP\" or \"code\"", "myapp.com/otp", null, true),
