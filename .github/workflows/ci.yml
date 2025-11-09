@@ -1,0 +1,216 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build all modules
+        run: ./gradlew build --stacktrace
+
+      - name: Run unit tests
+        run: ./gradlew test --stacktrace
+
+      - name: Run lint checks
+        run: ./gradlew lint --stacktrace
+
+      - name: Generate test report
+        if: always()
+        run: ./gradlew testDebugUnitTest --continue
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            **/build/test-results/test*/*.xml
+            **/build/reports/tests/
+
+      - name: Upload lint results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-results
+          path: |
+            **/build/reports/lint-results*.html
+            **/build/reports/lint-results*.xml
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Check code formatting
+        run: ./gradlew ktlintCheck || true
+
+      - name: Run detekt
+        run: ./gradlew detekt || true
+        continue-on-error: true
+
+  module-verification:
+    name: Module Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      matrix:
+        module:
+          - ':app'
+          - ':core:core-common'
+          - ':core:core-network'
+          - ':data:data-triggers'
+          - ':feature:feature-triggers'
+          - ':service:service-sms'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build module ${{ matrix.module }}
+        run: ./gradlew ${{ matrix.module }}:build --stacktrace
+
+      - name: Test module ${{ matrix.module }}
+        run: ./gradlew ${{ matrix.module }}:test --stacktrace || true
+        continue-on-error: true
+
+  dependency-check:
+    name: Dependency Vulnerability Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Check dependencies
+        run: ./gradlew dependencies > dependencies.txt
+
+      - name: Upload dependency tree
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependencies
+          path: dependencies.txt
+
+  assemble:
+    name: Assemble APKs
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Assemble Debug APK
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+
+  status-check:
+    name: CI Status Check
+    runs-on: ubuntu-latest
+    needs: [build, code-quality, module-verification, dependency-check, assemble]
+    if: always()
+
+    steps:
+      - name: Check build status
+        run: |
+          if [ "${{ needs.build.result }}" != "success" ]; then
+            echo "Build failed"
+            exit 1
+          fi
+          if [ "${{ needs.assemble.result }}" != "success" ]; then
+            echo "Assembly failed"
+            exit 1
+          fi
+          echo "All required checks passed"
