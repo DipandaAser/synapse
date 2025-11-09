@@ -1,0 +1,114 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    name: Create Release Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Extract version from tag or input
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Building version: ${VERSION}"
+
+      - name: Run tests
+        run: ./gradlew test --stacktrace
+
+      - name: Build Release APK
+        run: ./gradlew :app:assembleRelease --stacktrace
+
+      - name: Sign APK
+        if: false
+        run: |
+          echo "APK signing would happen here with your keystore"
+          echo "Add your signing configuration to enable this step"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          git log --pretty=format:"- %s (%h)" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            app/build/outputs/apk/release/*.apk
+          body: |
+            ## Release ${{ steps.version.outputs.VERSION }}
+            
+            ### Changes
+            ${{ steps.changelog.outputs.CHANGELOG }}
+            
+            ### APK Files
+            - app-release.apk (unsigned)
+            
+            ### Installation
+            Download the APK and install on your Android device.
+            Make sure to enable "Install from unknown sources" in your device settings.
+            
+            ### Minimum Requirements
+            - Android 7.0 (API 24) or higher
+            
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk-${{ steps.version.outputs.VERSION }}
+          path: app/build/outputs/apk/release/*.apk
+          retention-days: 90
+
+      - name: Build Statistics
+        run: |
+          echo "## Build Statistics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Version: ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Build Date: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f app/build/outputs/apk/release/*.apk ]; then
+            APK_SIZE=$(stat -f%z app/build/outputs/apk/release/*.apk 2>/dev/null || stat -c%s app/build/outputs/apk/release/*.apk 2>/dev/null)
+            APK_SIZE_MB=$((APK_SIZE / 1024 / 1024))
+            echo "- APK Size: ${APK_SIZE_MB}MB" >> $GITHUB_STEP_SUMMARY
+          fi
