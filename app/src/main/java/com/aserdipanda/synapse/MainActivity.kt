@@ -61,6 +61,10 @@ class MainActivity : ComponentActivity() {
                 // Collect state from ViewModel
                 val isServiceActive by viewModel.isSmsListenerEnabled.collectAsState()
                 val triggers by viewModel.triggers.collectAsState()
+                
+                // Navigation state
+                var showAddTriggerScreen by remember { mutableStateOf(false) }
+                var triggerToEdit by remember { mutableStateOf<TriggerEntity?>(null) }
 
                 // Convert TriggerEntity to UI Trigger model
                 val uiTriggers = triggers.map { entity ->
@@ -75,28 +79,50 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                TriggerListScreen(
-                    isServiceActive = isServiceActive,
-                    triggers = uiTriggers,
-                    onToggleService = { isEnabled ->
-                        if (isEnabled) {
-                            checkAndStartService()
-                        } else {
-                            stopSmsListenerService()
+                if (showAddTriggerScreen) {
+                    com.aserdipanda.synapse.feature.triggers.ui.AddEditTriggerScreen(
+                        trigger = triggerToEdit,
+                        onSave = { newTrigger ->
+                            if (triggerToEdit == null) {
+                                viewModel.addTrigger(newTrigger)
+                            } else {
+                                viewModel.updateTrigger(newTrigger)
+                            }
+                            showAddTriggerScreen = false
+                            triggerToEdit = null
+                            Toast.makeText(this, "Trigger saved", Toast.LENGTH_SHORT).show()
+                        },
+                        onCancel = {
+                            showAddTriggerScreen = false
+                            triggerToEdit = null
                         }
-                        viewModel.setSmsListenerEnabled(isEnabled)
-                    },
-                    onAddTrigger = {
-                        Toast.makeText(this, "Add Trigger Clicked!", Toast.LENGTH_SHORT).show()
-                    },
-                    onEditTrigger = { trigger ->
-                        Toast.makeText(this, "Edit ${trigger.name}", Toast.LENGTH_SHORT).show()
-                    },
-                    onToggleTrigger = { trigger, isEnabled ->
-                        viewModel.toggleTriggerStatus(trigger.id.toLong(), isEnabled)
-                        Toast.makeText(this, "${trigger.name} toggled to $isEnabled", Toast.LENGTH_SHORT).show()
-                    }
-                )
+                    )
+                } else {
+                    TriggerListScreen(
+                        isServiceActive = isServiceActive,
+                        triggers = uiTriggers,
+                        onToggleService = { isEnabled ->
+                            if (isEnabled) {
+                                checkAndStartService()
+                            } else {
+                                stopSmsListenerService()
+                            }
+                            viewModel.setSmsListenerEnabled(isEnabled)
+                        },
+                        onAddTrigger = {
+                            triggerToEdit = null
+                            showAddTriggerScreen = true
+                        },
+                        onEditTrigger = { trigger ->
+                            triggerToEdit = triggers.find { it.id == trigger.id.toLong() }
+                            showAddTriggerScreen = true
+                        },
+                        onToggleTrigger = { trigger, isEnabled ->
+                            viewModel.toggleTriggerStatus(trigger.id.toLong(), isEnabled)
+                            Toast.makeText(this, "${trigger.name} toggled to $isEnabled", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
             }
         }
     }

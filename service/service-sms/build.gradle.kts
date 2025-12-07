@@ -36,6 +36,7 @@ dependencies {
     implementation(project(":core:core-common"))
     implementation(project(":core:core-network"))
     implementation(project(":data:data-triggers"))
+    implementation(project(":data:data-triggers"))
     
     implementation(libs.androidx.core.ktx)
     implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
