@@ -13,22 +13,44 @@ import com.aserdipanda.synapse.data.triggers.local.TriggerEntity
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditTriggerScreen(
+    modifier: Modifier = Modifier,
     trigger: TriggerEntity? = null,
     onSave: (TriggerEntity) -> Unit,
-    onCancel: () -> Unit,
-    modifier: Modifier = Modifier
 ) {
     var name by remember { mutableStateOf(trigger?.name ?: "") }
     var senderPattern by remember { mutableStateOf(trigger?.senderPattern ?: "") }
     var messagePattern by remember { mutableStateOf(trigger?.messagePattern ?: "") }
     var webhookUrl by remember { mutableStateOf(trigger?.webhookUrl ?: "") }
-    
+    var webhookMethod by remember { mutableStateOf(trigger?.webhookMethod ?: "POST") }
+    var webhookBody by remember { mutableStateOf(trigger?.webhookBody ?: "") }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (trigger == null) "Add Trigger" else "Edit Trigger") }
+                title = { Text(if (trigger == null) "Add Trigger" else "Edit Trigger") },
+                actions = {
+                    TextButton(onClick = {
+                        val triggerEntity = TriggerEntity(
+                            id = trigger?.id ?: 0,
+                            name = name,
+                            senderPattern = senderPattern,
+                            messagePattern = messagePattern.takeIf { it.isNotBlank() },
+                            webhookUrl = webhookUrl,
+                            webhookMethod = webhookMethod,
+                            webhookBody = webhookBody,
+                            isActive = trigger?.isActive ?: true,
+                            createdAt = trigger?.createdAt ?: System.currentTimeMillis(),
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        onSave(triggerEntity)
+                    },
+                        enabled = name.isNotBlank() && senderPattern.isNotBlank() && webhookUrl.isNotBlank())
+                    {
+                        Text("Save")
+                    }
+                }
             )
-        }
+        },
     ) { paddingValues ->
         Column(
             modifier = modifier
@@ -42,21 +64,32 @@ fun AddEditTriggerScreen(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Trigger Name") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
             
             OutlinedTextField(
                 value = senderPattern,
                 onValueChange = { senderPattern = it },
                 label = { Text("Sender Pattern (e.g., 7515)") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
             
             OutlinedTextField(
                 value = messagePattern,
                 onValueChange = { messagePattern = it },
                 label = { Text("Message Pattern (Optional)") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            OutlinedTextField(
+                value = webhookMethod,
+                onValueChange = { webhookMethod = it },
+                label = { Text("Webhook Method") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
             
             OutlinedTextField(
@@ -65,34 +98,14 @@ fun AddEditTriggerScreen(
                 label = { Text("Webhook URL") },
                 modifier = Modifier.fillMaxWidth()
             )
-            
-            Row(
+
+            OutlinedTextField(
+                value = webhookBody,
+                onValueChange = { webhookBody = it },
+                label = { Text("Webhook Body") },
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                TextButton(onClick = onCancel) {
-                    Text("Cancel")
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        val triggerEntity = TriggerEntity(
-                            id = trigger?.id ?: 0,
-                            name = name,
-                            senderPattern = senderPattern,
-                            messagePattern = messagePattern.takeIf { it.isNotBlank() },
-                            webhookUrl = webhookUrl,
-                            isActive = trigger?.isActive ?: true,
-                            createdAt = trigger?.createdAt ?: System.currentTimeMillis(),
-                            updatedAt = System.currentTimeMillis()
-                        )
-                        onSave(triggerEntity)
-                    },
-                    enabled = name.isNotBlank() && senderPattern.isNotBlank() && webhookUrl.isNotBlank()
-                ) {
-                    Text("Save")
-                }
-            }
+                minLines = 5
+            )
         }
     }
 }
@@ -103,7 +116,6 @@ fun AddTriggerScreenPreview() {
     AddEditTriggerScreen(
         trigger = null,
         onSave = {},
-        onCancel = {}
     )
 }
 
@@ -117,5 +129,5 @@ fun EditTriggerScreenPreview() {
         webhookUrl = "https://example.com/webhook",
         isActive = true
     )
-    AddEditTriggerScreen(trigger = sampleTrigger, onSave = {}, onCancel = {})
+    AddEditTriggerScreen(trigger = sampleTrigger, onSave = {})
 }

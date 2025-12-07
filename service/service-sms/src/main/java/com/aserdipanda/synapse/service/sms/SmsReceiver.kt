@@ -49,7 +49,7 @@ class SmsReceiver : BroadcastReceiver() {
                         matchingTriggers.forEach { trigger ->
                             Log.d("SmsReceiver", "Processing trigger: ${trigger.name}")
                             
-                            callWebhook(trigger.webhookUrl, sender, messageBody)
+                            callWebhook(trigger.webhookUrl, sender, messageBody, trigger)
                         }
                     } else {
                         Log.d("SmsReceiver", "No matching triggers for SMS from $sender")
@@ -71,22 +71,18 @@ class SmsReceiver : BroadcastReceiver() {
         return senderMatches && messageMatches
     }
 
-    private fun callWebhook(webhookUrl: String, sender: String, message: String) {
-        val json = """
-            {
-                "sender": "$sender",
-                "message": "$message",
-                "timestamp": ${System.currentTimeMillis()}
-            }
-        """.trimIndent()
-
-        val requestBody = json.toRequestBody("application/json".toMediaType())
+    private fun callWebhook(webhookUrl: String, sender: String, message: String, trigger: TriggerEntity) {
+        val requestBodyRaw = trigger.webhookBody
+        val body = requestBodyRaw?.let {
+            val replacedBody = it.replace("{sender}", sender).replace("{message}", message)
+            replacedBody.toRequestBody(null)
+        }
+        val url = webhookUrl.replace("{sender}", sender).replace("{message}", message)
 
         val request = Request.Builder()
-            .url(webhookUrl)
-            .post(requestBody)
+            .url(url)
+            .method(trigger.webhookMethod, body)
             .build()
-
         try {
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
