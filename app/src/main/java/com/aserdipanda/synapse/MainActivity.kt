@@ -30,11 +30,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.aserdipanda.core.ui.theme.SynapseAppTheme
 import com.aserdipanda.synapse.core.common.Constants
 import com.aserdipanda.synapse.data.triggers.local.TriggerEntity
 import com.aserdipanda.synapse.feature.triggers.TriggersViewModel
 import com.aserdipanda.synapse.feature.triggers.TriggersViewModelFactory
+import com.aserdipanda.synapse.feature.triggers.ui.AddEditTriggerScreen
 import com.aserdipanda.synapse.feature.triggers.ui.Trigger
 import com.aserdipanda.synapse.feature.triggers.ui.TriggerListScreen
 import com.aserdipanda.synapse.service.sms.SmsListenerService
@@ -58,13 +64,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             SynapseAppTheme {
+                val navController = rememberNavController()
+                
                 // Collect state from ViewModel
                 val isServiceActive by viewModel.isSmsListenerEnabled.collectAsState()
                 val triggers by viewModel.triggers.collectAsState()
-                
-                // Navigation state
-                var showAddTriggerScreen by remember { mutableStateOf(false) }
-                var triggerToEdit by remember { mutableStateOf<TriggerEntity?>(null) }
 
                 // Convert TriggerEntity to UI Trigger model
                 val uiTriggers = triggers.map { entity ->
@@ -79,49 +83,68 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                if (showAddTriggerScreen) {
-                    com.aserdipanda.synapse.feature.triggers.ui.AddEditTriggerScreen(
-                        trigger = triggerToEdit,
-                        onSave = { newTrigger ->
-                            if (triggerToEdit == null) {
+                NavHost(
+                    navController = navController,
+                    startDestination = "trigger_list"
+                ) {
+                    composable("trigger_list") {
+                        TriggerListScreen(
+                            isServiceActive = isServiceActive,
+                            triggers = uiTriggers,
+                            onToggleService = { isEnabled ->
+                                if (isEnabled) {
+                                    checkAndStartService()
+                                } else {
+                                    stopSmsListenerService()
+                                }
+                                viewModel.setSmsListenerEnabled(isEnabled)
+                            },
+                            onAddTrigger = {
+                                navController.navigate("add_trigger")
+                            },
+                            onEditTrigger = { trigger ->
+                                navController.navigate("edit_trigger/${trigger.id}")
+                            },
+                            onToggleTrigger = { trigger, isEnabled ->
+                                viewModel.toggleTriggerStatus(trigger.id.toLong(), isEnabled)
+                                Toast.makeText(this@MainActivity, "${trigger.name} toggled to $isEnabled", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    }
+                    
+                    composable("add_trigger") {
+                        AddEditTriggerScreen(
+                            trigger = null,
+                            onSave = { newTrigger ->
                                 viewModel.addTrigger(newTrigger)
-                            } else {
-                                viewModel.updateTrigger(newTrigger)
+                                Toast.makeText(this@MainActivity, "Trigger saved", Toast.LENGTH_SHORT).show()
+                                navController.popBackStack()
+                            },
+                            onCancel = {
+                                navController.popBackStack()
                             }
-                            showAddTriggerScreen = false
-                            triggerToEdit = null
-                            Toast.makeText(this, "Trigger saved", Toast.LENGTH_SHORT).show()
-                        },
-                        onCancel = {
-                            showAddTriggerScreen = false
-                            triggerToEdit = null
-                        }
-                    )
-                } else {
-                    TriggerListScreen(
-                        isServiceActive = isServiceActive,
-                        triggers = uiTriggers,
-                        onToggleService = { isEnabled ->
-                            if (isEnabled) {
-                                checkAndStartService()
-                            } else {
-                                stopSmsListenerService()
+                        )
+                    }
+                    
+                    composable(
+                        route = "edit_trigger/{triggerId}",
+                        arguments = listOf(navArgument("triggerId") { type = NavType.IntType })
+                    ) { backStackEntry ->
+                        val triggerId = backStackEntry.arguments?.getInt("triggerId")?.toLong()
+                        val triggerToEdit = triggers.find { it.id == triggerId }
+                        
+                        AddEditTriggerScreen(
+                            trigger = triggerToEdit,
+                            onSave = { updatedTrigger ->
+                                viewModel.updateTrigger(updatedTrigger)
+                                Toast.makeText(this@MainActivity, "Trigger updated", Toast.LENGTH_SHORT).show()
+                                navController.popBackStack()
+                            },
+                            onCancel = {
+                                navController.popBackStack()
                             }
-                            viewModel.setSmsListenerEnabled(isEnabled)
-                        },
-                        onAddTrigger = {
-                            triggerToEdit = null
-                            showAddTriggerScreen = true
-                        },
-                        onEditTrigger = { trigger ->
-                            triggerToEdit = triggers.find { it.id == trigger.id.toLong() }
-                            showAddTriggerScreen = true
-                        },
-                        onToggleTrigger = { trigger, isEnabled ->
-                            viewModel.toggleTriggerStatus(trigger.id.toLong(), isEnabled)
-                            Toast.makeText(this, "${trigger.name} toggled to $isEnabled", Toast.LENGTH_SHORT).show()
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }

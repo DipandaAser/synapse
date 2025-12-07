@@ -22,7 +22,6 @@ fun AddEditTriggerScreen(
     var senderPattern by remember { mutableStateOf(trigger?.senderPattern ?: "") }
     var messagePattern by remember { mutableStateOf(trigger?.messagePattern ?: "") }
     var webhookUrl by remember { mutableStateOf(trigger?.webhookUrl ?: "") }
-    var targetPhones by remember { mutableStateOf(trigger?.targetPhoneNumbers?.joinToString(", ") ?: "") }
     
     Scaffold(
         topBar = {
@@ -67,14 +66,6 @@ fun AddEditTriggerScreen(
                 modifier = Modifier.fillMaxWidth()
             )
             
-            OutlinedTextField(
-                value = targetPhones,
-                onValueChange = { targetPhones = it },
-                label = { Text("Target Phone Numbers (comma separated)") },
-                modifier = Modifier.fillMaxWidth(),
-                supportingText = { Text("Example: +1234567890, +0987654321") }
-            )
-            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
@@ -91,7 +82,6 @@ fun AddEditTriggerScreen(
                             senderPattern = senderPattern,
                             messagePattern = messagePattern.takeIf { it.isNotBlank() },
                             webhookUrl = webhookUrl,
-                            targetPhoneNumbers = targetPhones.split(",").map { it.trim() },
                             isActive = trigger?.isActive ?: true,
                             createdAt = trigger?.createdAt ?: System.currentTimeMillis(),
                             updatedAt = System.currentTimeMillis()
@@ -125,7 +115,6 @@ fun EditTriggerScreenPreview() {
         name = "Bank Alert",
         senderPattern = "7515",
         webhookUrl = "https://example.com/webhook",
-        targetPhoneNumbers = listOf("+1234567890"),
         isActive = true
     )
     AddEditTriggerScreen(trigger = sampleTrigger, onSave = {}, onCancel = {})

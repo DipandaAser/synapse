@@ -67,6 +67,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
+    
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
 
     implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
     

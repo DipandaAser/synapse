@@ -5,8 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
 import android.util.Log
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.aserdipanda.synapse.core.common.Constants
 import com.aserdipanda.synapse.core.network.NetworkModule
 import com.aserdipanda.synapse.data.triggers.TriggersRepository
 import com.aserdipanda.synapse.data.triggers.local.DatabaseProvider
@@ -30,11 +28,9 @@ class SmsReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Get repository to fetch active triggers
-                val database = DatabaseProvider.getDatabase(context)
+                 val database = DatabaseProvider.getDatabase(context)
                 val repository = TriggersRepository(database.triggerDao(), database.appSettingDao())
                 
-                // Fetch all active triggers
                 val activeTriggers = repository.getActiveTriggers()
                 Log.d("SmsReceiver", "Loaded ${activeTriggers.size} active triggers")
                 
@@ -43,15 +39,6 @@ class SmsReceiver : BroadcastReceiver() {
                     val sender = smsMessage.displayOriginatingAddress ?: ""
                     val messageBody = smsMessage.messageBody
 
-//                    val localIntent = Intent(Constants.ACTION_SMS_RECEIVED).apply {
-//                        putExtra(Constants.EXTRA_SMS_SENDER, sender)
-//                        putExtra(Constants.EXTRA_SMS_BODY, messageBody)
-//                    }
-//                    CoroutineScope(Dispatchers.Main).launch {
-//                        LocalBroadcastManager.getInstance(context).sendBroadcast(localIntent)
-//                    }
-
-                    // Check against all active triggers
                     val matchingTriggers = activeTriggers.filter { trigger ->
                         matchesTrigger(sender, messageBody, trigger)
                     }
@@ -62,13 +49,7 @@ class SmsReceiver : BroadcastReceiver() {
                         matchingTriggers.forEach { trigger ->
                             Log.d("SmsReceiver", "Processing trigger: ${trigger.name}")
                             
-                            // Call webhook URL for this trigger
                             callWebhook(trigger.webhookUrl, sender, messageBody)
-                            
-                            // Call each target phone number
-                            trigger.targetPhoneNumbers.forEach { phoneNumber ->
-                                callApi(phoneNumber, messageBody)
-                            }
                         }
                     } else {
                         Log.d("SmsReceiver", "No matching triggers for SMS from $sender")
@@ -81,10 +62,8 @@ class SmsReceiver : BroadcastReceiver() {
     }
 
     private fun matchesTrigger(sender: String, message: String, trigger: TriggerEntity): Boolean {
-        // Check sender pattern
         val senderMatches = sender.contains(trigger.senderPattern, ignoreCase = true)
         
-        // Check message pattern if provided
         val messageMatches = trigger.messagePattern?.let { pattern ->
             message.contains(pattern, ignoreCase = true)
         } ?: true // If no message pattern, consider it a match
@@ -118,38 +97,6 @@ class SmsReceiver : BroadcastReceiver() {
             }
         } catch (e: Exception) {
             Log.e("SmsReceiver", "Webhook call to $webhookUrl Exception: ${e.message}")
-        }
-    }
-
-    private fun callApi(phoneNumber: String, message: String) {
-        val url = "https://example.com"
-
-        val formattedPhoneNumber = if (phoneNumber.startsWith("+")) phoneNumber else "+$phoneNumber"
-
-        val json = """
-            {
-                "phoneNumber":"$formattedPhoneNumber",
-                "message": "$message"
-            }
-        """.trimIndent()
-
-        val requestBody = json.toRequestBody("application/json".toMediaType())
-
-        val request = Request.Builder()
-            .url(url)
-            .post(requestBody)
-            .build()
-
-        try {
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    Log.e("SmsReceiver", "API Call to $phoneNumber Failed: ${response.code} ${response.message}")
-                } else {
-                    Log.d("SmsReceiver", "API Call to $phoneNumber Successful: ${response.body?.string()}")
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("SmsReceiver", "API Call to $phoneNumber Exception: ${e.message}")
         }
     }
 }
