@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp") version "2.0.21-1.0.28"
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -43,9 +43,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+    kotlinOptions {}
 }
 
 dependencies {
@@ -56,27 +54,29 @@ dependencies {
     implementation(project(":data:data-triggers"))
     implementation(project(":feature:feature-triggers"))
     implementation(project(":service:service-sms"))
-    
-    val composeBom = platform("androidx.compose:compose-bom:2024.02.02")
+
+    // COMPOSE BOM setup
+    val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
-    implementation("androidx.activity:activity-compose:1.8.2")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    debugImplementation("androidx.compose.ui:ui-tooling")
+    // COMPOSE LIBRARIES (Look ma, no versions!)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    debugImplementation(libs.androidx.ui.tooling)
+
+    // OTHERS
+    implementation(libs.androidx.localbroadcastmanager)
     
     // Navigation
     implementation(libs.androidx.navigation.compose)
-
-    implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
     
     // Room
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
+    implementation(libs.bundles.room)
+    ksp(libs.androidx.room.compiler)
     
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

@@ -27,9 +27,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+    kotlinOptions {}
 }
 
 dependencies {
@@ -39,19 +37,15 @@ dependencies {
     implementation(project(":data:data-triggers"))
     
     implementation(libs.androidx.core.ktx)
-    implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
+    implementation(libs.androidx.localbroadcastmanager)
     
-    // Room
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
+    implementation(libs.bundles.room)
+    ksp(libs.androidx.room.compiler)
 
-    // OkHttp
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation(libs.okhttp)
     
-    // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
