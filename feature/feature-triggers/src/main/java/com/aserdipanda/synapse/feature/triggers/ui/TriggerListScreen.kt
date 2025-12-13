@@ -105,7 +105,7 @@ fun TriggerTopAppBar(
     TopAppBar(
         title = {
             Text(
-                text = "My SMS Triggers",
+                text = "Synapse",
                 style = MaterialTheme.typography.titleLarge
             )
         },

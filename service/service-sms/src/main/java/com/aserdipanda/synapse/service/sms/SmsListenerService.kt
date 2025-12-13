@@ -47,7 +47,7 @@ class SmsListenerService : Service() {
         val notification: Notification = NotificationCompat.Builder(this, Constants.SMS_LISTENER_CHANNEL_ID)
             .setContentTitle("Synapse Listener Active")
             .setContentText("Listening for incoming SMS messages.")
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(android.R.drawable.ic_menu_send)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .build()
