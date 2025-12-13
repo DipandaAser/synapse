@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    id("com.google.devtools.ksp") version "2.0.21-1.0.28"
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -27,13 +27,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {}
+    kotlinOptions {
+        jvmTarget = "11"
+    }
 }
 
 dependencies {
     implementation(project(":core:core-common"))
     implementation(project(":core:core-network"))
-    implementation(project(":data:data-triggers"))
     implementation(project(":data:data-triggers"))
     
     implementation(libs.androidx.core.ktx)
