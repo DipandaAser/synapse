@@ -13,21 +13,20 @@ class SynapseApp : Application() {
     }
 
     val database: TriggerDatabase by lazy {
-        Log.d(TAG, "Initializing database...")
         DatabaseProvider.getDatabase(applicationContext)
     }
     
-    // Repository instance
     val triggersRepository: TriggersRepository by lazy {
-        Log.d(TAG, "Initializing repository...")
-        TriggersRepository(database.triggerDao(), database.appSettingDao())
+        TriggersRepository(
+            database.triggerDao(),
+            database.conditionDao(),
+            database.actionDao(),
+            database.appSettingDao()
+        )
     }
     
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "SynapseApp onCreate() called")
-        // Initialize database eagerly to ensure it's created on first launch
         database
-        Log.d(TAG, "Database initialization triggered")
     }
 }

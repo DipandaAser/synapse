@@ -51,16 +51,15 @@ class MainActivity : ComponentActivity() {
                 val isServiceActive by viewModel.isSmsListenerEnabled.collectAsState()
                 val triggers by viewModel.triggers.collectAsState()
 
-                // Convert TriggerEntity to UI Trigger model
                 val uiTriggers = triggers.map { entity ->
                     Trigger(
-                        id = entity.id.toInt(),
-                        name = entity.name,
-                        sender = entity.senderPattern,
-                        contains = entity.messagePattern ?: "",
-                        url = entity.webhookUrl,
-                        lastTriggered = null, // TODO: Add lastTriggered field to TriggerEntity
-                        isEnabled = entity.isActive
+                        id = entity.trigger.id.toInt(),
+                        name = entity.trigger.name,
+                        sender = "",
+                        contains = "",
+                        url = "",
+                        lastTriggered = null,
+                        isEnabled = entity.trigger.enabled
                     )
                 }
 
@@ -109,12 +108,12 @@ class MainActivity : ComponentActivity() {
                         arguments = listOf(navArgument("triggerId") { type = NavType.IntType })
                     ) { backStackEntry ->
                         val triggerId = backStackEntry.arguments?.getInt("triggerId")?.toLong()
-                        val triggerToEdit = triggers.find { it.id == triggerId }
+                        val triggerToEdit = triggers.find { it.trigger.id == triggerId }
                         
                         AddEditTriggerScreen(
-                            trigger = triggerToEdit,
+                            trigger = triggerToEdit?.trigger,
                             onSave = { updatedTrigger ->
-                                viewModel.updateTrigger(updatedTrigger)
+                                //viewModel.updateTrigger(updatedTrigger)
                                 Toast.makeText(this@MainActivity, "Trigger updated", Toast.LENGTH_SHORT).show()
                                 navController.popBackStack()
                             }

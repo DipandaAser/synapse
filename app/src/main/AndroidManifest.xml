@@ -22,7 +22,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Synapse">
+        android:theme="@style/Theme.Synapse"
+        tools:targetApi="36">
 
         <receiver
             android:name="com.aserdipanda.synapse.service.sms.BootCompletedReceiver"
