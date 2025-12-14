@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -14,7 +15,7 @@ interface TriggerDao {
     @Query("SELECT * FROM triggers ORDER BY createdAt DESC")
     fun getAllTriggers(): Flow<List<TriggerEntity>>
     
-    @Query("SELECT * FROM triggers WHERE isActive = 1")
+    @Query("SELECT * FROM triggers WHERE enabled = 1")
     suspend fun getActiveTriggers(): List<TriggerEntity>
     
     @Query("SELECT * FROM triggers WHERE id = :id")
@@ -29,6 +30,18 @@ interface TriggerDao {
     @Delete
     suspend fun deleteTrigger(trigger: TriggerEntity)
     
-    @Query("UPDATE triggers SET isActive = :isActive WHERE id = :id")
-    suspend fun updateTriggerActiveStatus(id: Long, isActive: Boolean)
+    @Query("UPDATE triggers SET enabled = :enabled WHERE id = :id")
+    suspend fun updateTriggerEnabledStatus(id: Long, enabled: Boolean)
+    
+    @Transaction
+    @Query("SELECT * FROM triggers ORDER BY createdAt DESC")
+    fun getAllTriggersWithRelations(): Flow<List<TriggerWithRelations>>
+    
+    @Transaction
+    @Query("SELECT * FROM triggers WHERE enabled = 1")
+    suspend fun getActiveTriggersWithRelations(): List<TriggerWithRelations>
+    
+    @Transaction
+    @Query("SELECT * FROM triggers WHERE id = :id")
+    suspend fun getTriggerWithRelationsById(id: Long): TriggerWithRelations?
 }
