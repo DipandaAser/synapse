@@ -18,11 +18,11 @@ fun AddEditTriggerScreen(
     onSave: (TriggerEntity) -> Unit,
 ) {
     var name by remember { mutableStateOf(trigger?.name ?: "") }
-    var senderPattern by remember { mutableStateOf(trigger?.senderPattern ?: "") }
-    var messagePattern by remember { mutableStateOf(trigger?.messagePattern ?: "") }
-    var webhookUrl by remember { mutableStateOf(trigger?.webhookUrl ?: "") }
-    var webhookMethod by remember { mutableStateOf(trigger?.webhookMethod ?: "POST") }
-    var webhookBody by remember { mutableStateOf(trigger?.webhookBody ?: "") }
+    var senderPattern by remember { mutableStateOf("") }
+    var messagePattern by remember { mutableStateOf("") }
+    var webhookUrl by remember { mutableStateOf( "") }
+    var webhookMethod by remember { mutableStateOf( "POST") }
+    var webhookBody by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -33,12 +33,7 @@ fun AddEditTriggerScreen(
                         val triggerEntity = TriggerEntity(
                             id = trigger?.id ?: 0,
                             name = name,
-                            senderPattern = senderPattern,
-                            messagePattern = messagePattern.takeIf { it.isNotBlank() },
-                            webhookUrl = webhookUrl,
-                            webhookMethod = webhookMethod,
-                            webhookBody = webhookBody,
-                            isActive = trigger?.isActive ?: true,
+                            enabled = trigger?.enabled ?: true,
                             createdAt = trigger?.createdAt ?: System.currentTimeMillis(),
                             updatedAt = System.currentTimeMillis()
                         )
@@ -95,7 +90,7 @@ fun AddEditTriggerScreen(
             OutlinedTextField(
                 value = webhookUrl,
                 onValueChange = { webhookUrl = it },
-                label = { Text("Webhook URL") },
+                label = { Text("Webhook -URL") },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -125,9 +120,7 @@ fun EditTriggerScreenPreview() {
     val sampleTrigger = TriggerEntity(
         id = 1,
         name = "Bank Alert",
-        senderPattern = "7515",
-        webhookUrl = "https://example.com/webhook",
-        isActive = true
+        enabled = true
     )
     AddEditTriggerScreen(trigger = sampleTrigger, onSave = {})
 }

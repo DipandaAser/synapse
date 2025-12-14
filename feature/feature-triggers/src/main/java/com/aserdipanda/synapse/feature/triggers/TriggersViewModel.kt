@@ -3,7 +3,10 @@ package com.aserdipanda.synapse.feature.triggers
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aserdipanda.synapse.data.triggers.TriggersRepository
+import com.aserdipanda.synapse.data.triggers.local.ActionEntity
+import com.aserdipanda.synapse.data.triggers.local.ConditionEntity
 import com.aserdipanda.synapse.data.triggers.local.TriggerEntity
+import com.aserdipanda.synapse.data.triggers.local.TriggerWithRelations
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,8 +16,8 @@ class TriggersViewModel(
     private val repository: TriggersRepository
 ) : ViewModel() {
     
-    private val _triggers = MutableStateFlow<List<TriggerEntity>>(emptyList())
-    val triggers: StateFlow<List<TriggerEntity>> = _triggers.asStateFlow()
+    private val _triggers = MutableStateFlow<List<TriggerWithRelations>>(emptyList())
+    val triggers: StateFlow<List<TriggerWithRelations>> = _triggers.asStateFlow()
     
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -30,7 +33,7 @@ class TriggersViewModel(
     private fun loadTriggers() {
         viewModelScope.launch {
             _isLoading.value = true
-            repository.getAllTriggers().collect { triggerList ->
+            repository.getAllTriggersWithRelations().collect { triggerList ->
                 _triggers.value = triggerList
                 _isLoading.value = false
             }
@@ -56,9 +59,34 @@ class TriggersViewModel(
         }
     }
     
+    fun createTriggerWithRelations(
+        name: String,
+        enabled: Boolean,
+        conditions: List<ConditionEntity>,
+        actions: List<ActionEntity>
+    ) {
+        viewModelScope.launch {
+            val trigger = TriggerEntity(
+                name = name,
+                enabled = enabled
+            )
+            repository.createTriggerWithRelations(trigger, conditions, actions)
+        }
+    }
+    
     fun updateTrigger(trigger: TriggerEntity) {
         viewModelScope.launch {
             repository.updateTrigger(trigger)
+        }
+    }
+    
+    fun updateTriggerWithRelations(
+        trigger: TriggerEntity,
+        conditions: List<ConditionEntity>,
+        actions: List<ActionEntity>
+    ) {
+        viewModelScope.launch {
+            repository.updateTriggerWithRelations(trigger, conditions, actions)
         }
     }
     
@@ -68,9 +96,13 @@ class TriggersViewModel(
         }
     }
     
-    fun toggleTriggerStatus(id: Long, isActive: Boolean) {
+    fun toggleTriggerStatus(id: Long, enabled: Boolean) {
         viewModelScope.launch {
-            repository.updateTriggerActiveStatus(id, isActive)
+            repository.updateTriggerEnabledStatus(id, enabled)
         }
+    }
+    
+    suspend fun getTriggerWithRelationsById(id: Long): TriggerWithRelations? {
+        return repository.getTriggerWithRelationsById(id)
     }
 }
