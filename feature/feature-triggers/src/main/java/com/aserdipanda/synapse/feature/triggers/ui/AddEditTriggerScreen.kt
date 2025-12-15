@@ -9,6 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.aserdipanda.synapse.data.triggers.local.ActionEntity
+import com.aserdipanda.synapse.data.triggers.local.ConditionEntity
 import com.aserdipanda.synapse.data.triggers.local.TriggerEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -16,7 +18,10 @@ import com.aserdipanda.synapse.data.triggers.local.TriggerEntity
 fun AddEditTriggerScreen(
     modifier: Modifier = Modifier,
     trigger: TriggerEntity? = null,
-    onSave: (TriggerEntity) -> Unit,
+    senderCondition: ConditionEntity? = null,
+    messageCondition: ConditionEntity? = null,
+    actionEntity: ActionEntity? = null,
+    onSave: (trigger: TriggerEntity, senderCondition: ConditionEntity?, messageCondition: ConditionEntity?, action: ActionEntity) -> Unit,
 ) {
     val jsonBodyExample = """
         {
@@ -25,10 +30,13 @@ fun AddEditTriggerScreen(
         }
     """.trimIndent()
     var name by remember { mutableStateOf(trigger?.name ?: "") }
-    var senderPattern by remember { mutableStateOf("") }
-    var senderConditionOperator by remember { mutableStateOf("EQUAL") }
-    var messageConditionOperator by remember { mutableStateOf("CONTAINS") }
-    var messagePattern by remember { mutableStateOf("") }
+
+    var senderPattern by remember { mutableStateOf(senderCondition?.value ?: "") }
+    var senderConditionOperator by remember { mutableStateOf(senderCondition?.operator ?: "EQUAL") }
+
+    var messageConditionOperator by remember { mutableStateOf(messageCondition?.operator ?:"CONTAINS") }
+    var messagePattern by remember { mutableStateOf(messageCondition?.value?:"") }
+
     var webhookUrl by remember { mutableStateOf( "") }
     var webhookMethod by remember { mutableStateOf( "POST") }
     var webhookBody by remember { mutableStateOf(if (trigger == null) jsonBodyExample else "") }
@@ -50,9 +58,34 @@ fun AddEditTriggerScreen(
                             createdAt = trigger?.createdAt ?: System.currentTimeMillis(),
                             updatedAt = System.currentTimeMillis()
                         )
-                        onSave(triggerEntity)
+                        val senderConditionEntity = ConditionEntity(
+                            id = senderCondition?.id ?: 0,
+                            triggerId = triggerEntity.id,
+                            field = "sender",
+                            operator = senderConditionOperator,
+                            value = senderPattern
+                        )
+                        val messageConditionEntity = ConditionEntity(
+                            id = messageCondition?.id ?: 0,
+                            triggerId = triggerEntity
+                                    .id,
+                            field = "message_body",
+                            operator = messageConditionOperator,
+                            value = messagePattern
+                        )
+                        val actionEntity = ActionEntity(
+                            id = actionEntity?.id ?:0,
+                            triggerId = triggerEntity.id,
+                            type = "WEBHOOK",
+                            arg = ""
+                        )
+                        onSave(triggerEntity, senderConditionEntity, messageConditionEntity, actionEntity)
                     },
-                        enabled = name.isNotBlank() && senderPattern.isNotBlank() && webhookUrl.isNotBlank())
+                        enabled = name.isNotBlank() && (
+                                senderPattern.isNotBlank() && senderConditionOperator.isNotBlank()
+                                        || messagePattern.isNotBlank() && messageConditionOperator.isNotBlank()
+                                ) && webhookUrl.isNotBlank() && webhookMethod.isNotBlank()
+                    )
                     {
                         Text("Save")
                     }
@@ -209,7 +242,7 @@ fun MyExposedDropdownMenu(
 fun AddTriggerScreenPreview() {
     AddEditTriggerScreen(
         trigger = null,
-        onSave = {},
+        onSave = {} as (TriggerEntity, ConditionEntity?, ConditionEntity?, ActionEntity) -> Unit,
     )
 }
 
@@ -221,5 +254,5 @@ fun EditTriggerScreenPreview() {
         name = "Bank Alert",
         enabled = true
     )
-    AddEditTriggerScreen(trigger = sampleTrigger, onSave = {})
+    AddEditTriggerScreen(trigger = sampleTrigger, onSave = {} as (TriggerEntity, ConditionEntity?, ConditionEntity?, ActionEntity) -> Unit)
 }
