@@ -144,7 +144,7 @@ class SmsReceiver : BroadcastReceiver() {
             val json = JSONObject(arg)
             val url = json.getString("url")
             val method = json.optString("method", "POST")
-            val bodyTemplate = json.optString("body", null)
+            val bodyTemplate = if (json.has("body")) json.getString("body") else null
             
             val finalUrl = replaceTemplateVariables(url, sender, messageBody)
             val finalBody = bodyTemplate?.let {

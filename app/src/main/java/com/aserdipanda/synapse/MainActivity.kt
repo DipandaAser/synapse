@@ -19,7 +19,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.aserdipanda.core.ui.theme.SynapseAppTheme
-import com.aserdipanda.synapse.data.triggers.local.ConditionEntity
 import com.aserdipanda.synapse.feature.triggers.TriggersViewModel
 import com.aserdipanda.synapse.feature.triggers.TriggersViewModelFactory
 import com.aserdipanda.synapse.feature.triggers.ui.AddEditTriggerScreen
@@ -97,7 +96,7 @@ class MainActivity : ComponentActivity() {
                         AddEditTriggerScreen(
                             onSave = { newTrigger, newSenderCondition, newMessageCondition, newAction ->
                                 viewModel.createTriggerWithRelations(newTrigger.name, newTrigger.enabled,
-                                    listOf(newSenderCondition, newMessageCondition).filter { it != null } as List<ConditionEntity>, listOf(newAction))
+                                    listOfNotNull(newSenderCondition, newMessageCondition), listOf(newAction))
                                 Toast.makeText(this@MainActivity, "Trigger saved", Toast.LENGTH_SHORT).show()
                                 navController.popBackStack()
                             }
@@ -114,7 +113,7 @@ class MainActivity : ComponentActivity() {
                         AddEditTriggerScreen(
                             trigger = triggerToEdit?.trigger,
                             onSave = { updatedTrigger, updatedSenderCondition, updatedMessageCondition, action ->
-                                viewModel.updateTriggerWithRelations(updatedTrigger, listOf(updatedSenderCondition, updatedMessageCondition).filter { it != null } as List<ConditionEntity>, listOf(action))
+                                viewModel.updateTriggerWithRelations(updatedTrigger, listOfNotNull(updatedSenderCondition, updatedMessageCondition), listOf(action))
                                 Toast.makeText(this@MainActivity, "Trigger updated", Toast.LENGTH_SHORT).show()
                                 navController.popBackStack()
                             }

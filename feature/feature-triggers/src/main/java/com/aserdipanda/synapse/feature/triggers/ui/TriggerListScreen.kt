@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
@@ -56,7 +57,7 @@ fun TriggerListScreen(
         floatingActionButton = {
             val tooltipState = rememberTooltipState()
             TooltipBox(
-                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
                 tooltip = { PlainTooltip { Text("Add Trigger") } },
                 state = tooltipState,
             ) {
@@ -204,7 +205,7 @@ fun TriggerCard(
                     text = "Contains: ${trigger.contains}"
                 )
                 TriggerInfoRow(
-                    icon = Icons.Default.ArrowForward,
+                    icon = Icons.AutoMirrored.Filled.ArrowForward,
                     text = "POST → ${trigger.url}"
                 )
             }

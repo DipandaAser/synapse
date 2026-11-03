@@ -127,7 +127,7 @@ object DatabaseProvider {
                 "synapse_database"
             )
                 .addMigrations(MIGRATION_2_3)
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigration(true)
                 .addCallback(callback)
                 .build()
             INSTANCE = instance

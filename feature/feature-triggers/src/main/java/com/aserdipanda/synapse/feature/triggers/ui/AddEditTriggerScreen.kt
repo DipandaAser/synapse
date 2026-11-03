@@ -207,7 +207,7 @@ fun MyExposedDropdownMenu(
     ) {
         OutlinedTextField(
             modifier = Modifier
-                .menuAnchor()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                 .fillMaxWidth(),
             value = selectedValue,
             onValueChange = {},
@@ -242,7 +242,7 @@ fun MyExposedDropdownMenu(
 fun AddTriggerScreenPreview() {
     AddEditTriggerScreen(
         trigger = null,
-        onSave = {} as (TriggerEntity, ConditionEntity?, ConditionEntity?, ActionEntity) -> Unit,
+        onSave = { _, _, _, _ -> },
     )
 }
 
@@ -254,5 +254,5 @@ fun EditTriggerScreenPreview() {
         name = "Bank Alert",
         enabled = true
     )
-    AddEditTriggerScreen(trigger = sampleTrigger, onSave = {} as (TriggerEntity, ConditionEntity?, ConditionEntity?, ActionEntity) -> Unit)
+    AddEditTriggerScreen(trigger = sampleTrigger, onSave = { _, _, _, _ -> })
 }
