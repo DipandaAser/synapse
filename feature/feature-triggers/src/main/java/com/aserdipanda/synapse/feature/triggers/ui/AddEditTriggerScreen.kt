@@ -1,16 +1,44 @@
 package com.aserdipanda.synapse.feature.triggers.ui
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.aserdipanda.synapse.data.triggers.local.ActionEntity
 import com.aserdipanda.synapse.data.triggers.local.ConditionEntity
+import com.aserdipanda.synapse.data.triggers.local.Operator
 import com.aserdipanda.synapse.data.triggers.local.TriggerEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,17 +59,22 @@ fun AddEditTriggerScreen(
     """.trimIndent()
     var name by remember { mutableStateOf(trigger?.name ?: "") }
 
-    var senderPattern by remember { mutableStateOf(senderCondition?.value ?: "") }
-    var senderConditionOperator by remember { mutableStateOf(senderCondition?.operator ?: "EQUAL") }
+    var senderPattern by remember { mutableStateOf(senderCondition?.value ?: "+1 246 ") }
+    var senderConditionOperator by remember { mutableStateOf(senderCondition?.operator ?: Operator.EQUALS) }
+    val senderInputTextLabel = senderConditionOperator.description()
 
-    var messageConditionOperator by remember { mutableStateOf(messageCondition?.operator ?:"CONTAINS") }
-    var messagePattern by remember { mutableStateOf(messageCondition?.value?:"") }
 
-    var webhookUrl by remember { mutableStateOf( "") }
+    var messageConditionOperator by remember { mutableStateOf(messageCondition?.operator ?: Operator.CONTAINS) }
+    var messagePattern by remember { mutableStateOf(messageCondition?.value?:"e.g., bills") }
+
+    var webhookUrl by remember { mutableStateOf( "https://") }
     var webhookMethod by remember { mutableStateOf( "POST") }
     var webhookBody by remember { mutableStateOf(if (trigger == null) jsonBodyExample else "") }
 
-    val operators = listOf("EQUAL", "CONTAINS", "START WITH", "END WITH")
+
+
+
+    val operators = Operator.entries
 
 
 
@@ -49,6 +82,11 @@ fun AddEditTriggerScreen(
         topBar = {
             TopAppBar(
                 title = { Text(if (trigger == null) "Add Trigger" else "Edit Trigger") },
+                navigationIcon = {
+                    IconButton(onClick = {  }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
                 actions = {
                     TextButton(onClick = {
                         val triggerEntity = TriggerEntity(
@@ -82,8 +120,7 @@ fun AddEditTriggerScreen(
                         onSave(triggerEntity, senderConditionEntity, messageConditionEntity, actionEntity)
                     },
                         enabled = name.isNotBlank() && (
-                                senderPattern.isNotBlank() && senderConditionOperator.isNotBlank()
-                                        || messagePattern.isNotBlank() && messageConditionOperator.isNotBlank()
+                                senderPattern.isNotBlank() || messagePattern.isNotBlank()
                                 ) && webhookUrl.isNotBlank() && webhookMethod.isNotBlank()
                     )
                     {
@@ -117,37 +154,36 @@ fun AddEditTriggerScreen(
                     options = operators,
                     selectedValue = senderConditionOperator,
                     onValueChange = { senderConditionOperator = it },
+                    optionLabel = { it.displayName },
                     label = "Sender",
                     modifier = Modifier.weight(0.65f)
                 )
                 OutlinedTextField(
                     value = senderPattern,
                     onValueChange = { senderPattern = it },
-                    label = { Text("e.g., 7515") },
+                    label = { Text(senderInputTextLabel) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+
                 MyExposedDropdownMenu(
                     options = operators,
                     selectedValue = messageConditionOperator,
                     onValueChange = { messageConditionOperator = it },
+                    optionLabel = { it.displayName },
                     label = "Message",
-                    modifier = Modifier.weight(0.65f).height(IntrinsicSize.Min)
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
                 )
                 OutlinedTextField(
                     value = messagePattern,
                     onValueChange = { messagePattern = it },
                     label = { Text("e.g., bills") },
-                    modifier = Modifier.weight(1f).height(IntrinsicSize.Min),
-                    singleLine = true
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    minLines = 1
                 )
-            }
+
 
             OutlinedTextField(
                 value = webhookMethod,
@@ -191,11 +227,12 @@ fun FormSection(title: String, content: @Composable () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyExposedDropdownMenu(
+fun <T> MyExposedDropdownMenu(
     modifier: Modifier = Modifier,
-    options: List<String>,
-    selectedValue: String,
-    onValueChange: (String) -> Unit,
+    options: List<T>,
+    selectedValue: T,
+    onValueChange: (T) -> Unit,
+    optionLabel: (T) -> String = { it.toString() },
     label: String = "",
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -209,7 +246,7 @@ fun MyExposedDropdownMenu(
             modifier = Modifier
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                 .fillMaxWidth(),
-            value = selectedValue,
+            value = optionLabel(selectedValue),
             onValueChange = {},
             readOnly = true,
             label = if (label.isNotEmpty()) {{ Text(label) }} else null,
@@ -226,7 +263,7 @@ fun MyExposedDropdownMenu(
         ) {
             options.forEach { selectionOption ->
                 DropdownMenuItem(
-                    text = { Text(selectionOption) },
+                    text = { Text(optionLabel(selectionOption)) },
                     onClick = {
                         onValueChange(selectionOption)
                         expanded = false

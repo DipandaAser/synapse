@@ -9,6 +9,7 @@ import com.aserdipanda.synapse.core.network.NetworkModule
 import com.aserdipanda.synapse.data.triggers.TriggersRepository
 import com.aserdipanda.synapse.data.triggers.local.ConditionEntity
 import com.aserdipanda.synapse.data.triggers.local.DatabaseProvider
+import com.aserdipanda.synapse.data.triggers.local.Operator
 import com.aserdipanda.synapse.data.triggers.local.TriggerWithRelations
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -97,26 +98,15 @@ class SmsReceiver : BroadcastReceiver() {
 
     private fun evaluateCondition(
         fieldValue: String,
-        operator: String,
+        operator: Operator,
         expectedValue: String
     ): Boolean {
-        return when (operator.uppercase()) {
-            "EQUALS" -> fieldValue.equals(expectedValue, ignoreCase = true)
-            "CONTAINS" -> fieldValue.contains(expectedValue, ignoreCase = true)
-            "STARTS_WITH" -> fieldValue.startsWith(expectedValue, ignoreCase = true)
-            "ENDS_WITH" -> fieldValue.endsWith(expectedValue, ignoreCase = true)
-            "REGEX" -> try {
-                expectedValue.toRegex(RegexOption.IGNORE_CASE).matches(fieldValue)
-            } catch (e: Exception) {
-                Log.e("SmsReceiver", "Invalid regex pattern: $expectedValue", e)
-                false
-            }
-            "NOT_EQUALS" -> !fieldValue.equals(expectedValue, ignoreCase = true)
-            "NOT_CONTAINS" -> !fieldValue.contains(expectedValue, ignoreCase = true)
-            else -> {
-                Log.w("SmsReceiver", "Unknown operator: $operator")
-                false
-            }
+        return when (operator) {
+            Operator.EQUALS -> fieldValue.equals(expectedValue, ignoreCase = true)
+            Operator.CONTAINS -> fieldValue.contains(expectedValue, ignoreCase = true)
+            Operator.START_WITH -> fieldValue.startsWith(expectedValue, ignoreCase = true)
+            Operator.END_WITH -> fieldValue.endsWith(expectedValue, ignoreCase = true)
+            Operator.DOES_NOT_CONTAINS -> !fieldValue.contains(expectedValue, ignoreCase = true)
         }
     }
 

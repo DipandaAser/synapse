@@ -109,6 +109,18 @@ object DatabaseProvider {
         }
     }
 
+    // conditions.operator is now stored as an Operator enum name. Rows saved by the
+    // earlier string-based UI used display labels, which Room cannot map back to the enum.
+    private val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("UPDATE conditions SET operator = UPPER(TRIM(operator))")
+            db.execSQL("UPDATE conditions SET operator = 'EQUALS' WHERE operator = 'EQUAL'")
+            db.execSQL("UPDATE conditions SET operator = 'START_WITH' WHERE operator = 'START WITH'")
+            db.execSQL("UPDATE conditions SET operator = 'END_WITH' WHERE operator = 'END WITH'")
+            Log.d(TAG, "Migration from version 3 to version 4 completed successfully")
+        }
+    }
+
     private val callback = object : RoomDatabase.Callback() {
         override fun onCreate(db: SupportSQLiteDatabase) {
             super.onCreate(db)
@@ -126,7 +138,7 @@ object DatabaseProvider {
                 TriggerDatabase::class.java,
                 "synapse_database"
             )
-                .addMigrations(MIGRATION_2_3)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                 .fallbackToDestructiveMigration(true)
                 .addCallback(callback)
                 .build()

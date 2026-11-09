@@ -22,6 +22,24 @@ data class ConditionEntity(
     val id: Long = 0,
     val triggerId: Long,
     val field: String,
-    val operator: String,
+    val operator: Operator,
     val value: String
 )
+
+enum class Operator(val displayName: String) {
+    EQUALS("EQUALS"),
+    CONTAINS("CONTAINS"),
+    START_WITH("START WITH"),
+    END_WITH("END WITH"),
+    DOES_NOT_CONTAINS("DOES NOT CONTAINS");
+
+    fun description(): String {
+        return when (this) {
+            EQUALS -> "Sender is exactly"
+            CONTAINS -> "Sender contains"
+            START_WITH -> "Sender starts with"
+            END_WITH -> "Sender ends with"
+            DOES_NOT_CONTAINS -> "Sender does not contain"
+        }
+    }
+}
