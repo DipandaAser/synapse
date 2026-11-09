@@ -40,6 +40,7 @@ import com.aserdipanda.synapse.data.triggers.local.ActionEntity
 import com.aserdipanda.synapse.data.triggers.local.ConditionEntity
 import com.aserdipanda.synapse.data.triggers.local.Operator
 import com.aserdipanda.synapse.data.triggers.local.TriggerEntity
+import com.aserdipanda.synapse.data.triggers.local.WebhookConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +50,7 @@ fun AddEditTriggerScreen(
     senderCondition: ConditionEntity? = null,
     messageCondition: ConditionEntity? = null,
     actionEntity: ActionEntity? = null,
+    onBack: () -> Unit,
     onSave: (trigger: TriggerEntity, senderCondition: ConditionEntity?, messageCondition: ConditionEntity?, action: ActionEntity) -> Unit,
 ) {
     val jsonBodyExample = """
@@ -65,11 +67,15 @@ fun AddEditTriggerScreen(
 
 
     var messageConditionOperator by remember { mutableStateOf(messageCondition?.operator ?: Operator.CONTAINS) }
-    var messagePattern by remember { mutableStateOf(messageCondition?.value?:"e.g., bills") }
+    // Starts empty: the field's "e.g., bills" label is the hint, and sample text must never be saved as a rule.
+    var messagePattern by remember { mutableStateOf(messageCondition?.value ?: "") }
 
-    var webhookUrl by remember { mutableStateOf( "https://") }
-    var webhookMethod by remember { mutableStateOf( "POST") }
-    var webhookBody by remember { mutableStateOf(if (trigger == null) jsonBodyExample else "") }
+    val savedWebhook = remember { actionEntity?.let { WebhookConfig.fromArg(it.arg) } }
+    var webhookUrl by remember { mutableStateOf(savedWebhook?.url ?: "https://") }
+    var webhookMethod by remember { mutableStateOf(savedWebhook?.method ?: "POST") }
+    var webhookBody by remember {
+        mutableStateOf(savedWebhook?.body ?: if (trigger == null) jsonBodyExample else "")
+    }
 
 
 
@@ -83,7 +89,7 @@ fun AddEditTriggerScreen(
             TopAppBar(
                 title = { Text(if (trigger == null) "Add Trigger" else "Edit Trigger") },
                 navigationIcon = {
-                    IconButton(onClick = {  }) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -96,28 +102,38 @@ fun AddEditTriggerScreen(
                             createdAt = trigger?.createdAt ?: System.currentTimeMillis(),
                             updatedAt = System.currentTimeMillis()
                         )
-                        val senderConditionEntity = ConditionEntity(
-                            id = senderCondition?.id ?: 0,
-                            triggerId = triggerEntity.id,
-                            field = "sender",
-                            operator = senderConditionOperator,
-                            value = senderPattern
+                        // A blank pattern means "no rule on this field". Saving it would create a
+                        // rule that matches nothing (EQUALS "") or everything (CONTAINS "").
+                        val senderConditionEntity = senderPattern.takeIf { it.isNotBlank() }?.let {
+                            ConditionEntity(
+                                id = senderCondition?.id ?: 0,
+                                triggerId = triggerEntity.id,
+                                field = "sender",
+                                operator = senderConditionOperator,
+                                value = it
+                            )
+                        }
+                        val messageConditionEntity = messagePattern.takeIf { it.isNotBlank() }?.let {
+                            ConditionEntity(
+                                id = messageCondition?.id ?: 0,
+                                triggerId = triggerEntity.id,
+                                field = "message_body",
+                                operator = messageConditionOperator,
+                                value = it
+                            )
+                        }
+                        val webhookConfig = WebhookConfig(
+                            url = webhookUrl.trim(),
+                            method = webhookMethod.trim().uppercase(),
+                            body = webhookBody.takeIf { it.isNotBlank() }
                         )
-                        val messageConditionEntity = ConditionEntity(
-                            id = messageCondition?.id ?: 0,
-                            triggerId = triggerEntity
-                                    .id,
-                            field = "message_body",
-                            operator = messageConditionOperator,
-                            value = messagePattern
-                        )
-                        val actionEntity = ActionEntity(
-                            id = actionEntity?.id ?:0,
+                        val webhookAction = ActionEntity(
+                            id = actionEntity?.id ?: 0,
                             triggerId = triggerEntity.id,
                             type = "WEBHOOK",
-                            arg = ""
+                            arg = webhookConfig.toArg()
                         )
-                        onSave(triggerEntity, senderConditionEntity, messageConditionEntity, actionEntity)
+                        onSave(triggerEntity, senderConditionEntity, messageConditionEntity, webhookAction)
                     },
                         enabled = name.isNotBlank() && (
                                 senderPattern.isNotBlank() || messagePattern.isNotBlank()
@@ -279,6 +295,7 @@ fun <T> MyExposedDropdownMenu(
 fun AddTriggerScreenPreview() {
     AddEditTriggerScreen(
         trigger = null,
+        onBack = {},
         onSave = { _, _, _, _ -> },
     )
 }
@@ -291,5 +308,5 @@ fun EditTriggerScreenPreview() {
         name = "Bank Alert",
         enabled = true
     )
-    AddEditTriggerScreen(trigger = sampleTrigger, onSave = { _, _, _, _ -> })
+    AddEditTriggerScreen(trigger = sampleTrigger, onBack = {}, onSave = { _, _, _, _ -> })
 }

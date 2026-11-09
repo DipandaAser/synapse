@@ -17,12 +17,7 @@ class SynapseApp : Application() {
     }
     
     val triggersRepository: TriggersRepository by lazy {
-        TriggersRepository(
-            database.triggerDao(),
-            database.conditionDao(),
-            database.actionDao(),
-            database.appSettingDao()
-        )
+        TriggersRepository(database)
     }
     
     override fun onCreate() {

@@ -11,6 +11,7 @@ import com.aserdipanda.synapse.data.triggers.local.ConditionEntity
 import com.aserdipanda.synapse.data.triggers.local.DatabaseProvider
 import com.aserdipanda.synapse.data.triggers.local.Operator
 import com.aserdipanda.synapse.data.triggers.local.TriggerWithRelations
+import com.aserdipanda.synapse.data.triggers.local.WebhookConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,13 +32,7 @@ class SmsReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                 val database = DatabaseProvider.getDatabase(context)
-                val repository = TriggersRepository(
-                    database.triggerDao(),
-                    database.conditionDao(),
-                    database.actionDao(),
-                    database.appSettingDao()
-                )
+                val repository = TriggersRepository(DatabaseProvider.getDatabase(context))
                 
                 val activeTriggersWithRelations = repository.getActiveTriggersWithRelations()
                 Log.d("SmsReceiver", "Loaded ${activeTriggersWithRelations.size} active triggers")
@@ -130,20 +125,28 @@ class SmsReceiver : BroadcastReceiver() {
     }
 
     private fun executeWebhookAction(arg: String, sender: String, messageBody: String) {
+        val config = WebhookConfig.fromArg(arg)
+        if (config == null) {
+            Log.e("SmsReceiver", "Webhook action has no valid settings, skipping: $arg")
+            return
+        }
         try {
-            val json = JSONObject(arg)
-            val url = json.getString("url")
-            val method = json.optString("method", "POST")
-            val bodyTemplate = if (json.has("body")) json.getString("body") else null
-            
-            val finalUrl = replaceTemplateVariables(url, sender, messageBody)
-            val finalBody = bodyTemplate?.let {
+            val finalUrl = replaceTemplateVariables(config.url, sender, messageBody)
+            val finalBody = config.body?.let {
                 replaceTemplateVariables(it, sender, messageBody)
+            }
+
+            // OkHttp rejects a body on GET and HEAD, and requires one on POST, PUT and PATCH.
+            val method = config.method.trim().uppercase()
+            val requestBody = if (method in METHODS_WITHOUT_BODY) {
+                null
+            } else {
+                (finalBody ?: "").toRequestBody("application/json".toMediaType())
             }
 
             val request = Request.Builder()
                 .url(finalUrl)
-                .method(method, finalBody?.toRequestBody("application/json".toMediaType()))
+                .method(method, requestBody)
                 .build()
 
             client.newCall(request).execute().use { response ->
@@ -175,5 +178,9 @@ class SmsReceiver : BroadcastReceiver() {
             .replace("{{message}}", messageBody)
             .replace("{{message_body}}", messageBody)
             .replace("{{timestamp}}", System.currentTimeMillis().toString())
+    }
+
+    private companion object {
+        val METHODS_WITHOUT_BODY = setOf("GET", "HEAD")
     }
 }

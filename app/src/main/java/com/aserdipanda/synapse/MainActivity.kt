@@ -19,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.aserdipanda.core.ui.theme.SynapseAppTheme
+import com.aserdipanda.synapse.data.triggers.local.WebhookConfig
 import com.aserdipanda.synapse.feature.triggers.TriggersViewModel
 import com.aserdipanda.synapse.feature.triggers.TriggersViewModelFactory
 import com.aserdipanda.synapse.feature.triggers.ui.AddEditTriggerScreen
@@ -55,9 +56,10 @@ class MainActivity : ComponentActivity() {
                     Trigger(
                         id = entity.trigger.id.toInt(),
                         name = entity.trigger.name,
-                        sender = "",
-                        contains = "",
-                        url = "",
+                        sender = entity.conditions.firstOrNull { it.field == "sender" }?.value ?: "",
+                        contains = entity.conditions.firstOrNull { it.field == "message_body" }?.value ?: "",
+                        url = entity.actions.firstOrNull { it.type == "WEBHOOK" }
+                            ?.let { WebhookConfig.fromArg(it.arg)?.url } ?: "",
                         lastTriggered = null,
                         isEnabled = entity.trigger.enabled
                     )
@@ -94,6 +96,7 @@ class MainActivity : ComponentActivity() {
                     
                     composable("add_trigger") {
                         AddEditTriggerScreen(
+                            onBack = { navController.navigateUp() },
                             onSave = { newTrigger, newSenderCondition, newMessageCondition, newAction ->
                                 viewModel.createTriggerWithRelations(newTrigger.name, newTrigger.enabled,
                                     listOfNotNull(newSenderCondition, newMessageCondition), listOf(newAction))
@@ -109,15 +112,24 @@ class MainActivity : ComponentActivity() {
                     ) { backStackEntry ->
                         val triggerId = backStackEntry.arguments?.getInt("triggerId")?.toLong()
                         val triggerToEdit = triggers.find { it.trigger.id == triggerId }
-                        
-                        AddEditTriggerScreen(
-                            trigger = triggerToEdit?.trigger,
-                            onSave = { updatedTrigger, updatedSenderCondition, updatedMessageCondition, action ->
-                                viewModel.updateTriggerWithRelations(updatedTrigger, listOfNotNull(updatedSenderCondition, updatedMessageCondition), listOf(action))
-                                Toast.makeText(this@MainActivity, "Trigger updated", Toast.LENGTH_SHORT).show()
-                                navController.popBackStack()
-                            }
-                        )
+
+                        // The editor reads its initial values once, so wait until the saved
+                        // trigger has loaded. Otherwise it would start from defaults and saving
+                        // would overwrite the stored conditions and webhook.
+                        if (triggerToEdit != null) {
+                            AddEditTriggerScreen(
+                                trigger = triggerToEdit.trigger,
+                                senderCondition = triggerToEdit.conditions.firstOrNull { it.field == "sender" },
+                                messageCondition = triggerToEdit.conditions.firstOrNull { it.field == "message_body" },
+                                actionEntity = triggerToEdit.actions.firstOrNull { it.type == "WEBHOOK" },
+                                onBack = { navController.navigateUp() },
+                                onSave = { updatedTrigger, updatedSenderCondition, updatedMessageCondition, action ->
+                                    viewModel.updateTriggerWithRelations(updatedTrigger, listOfNotNull(updatedSenderCondition, updatedMessageCondition), listOf(action))
+                                    Toast.makeText(this@MainActivity, "Trigger updated", Toast.LENGTH_SHORT).show()
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
                     }
                 }
             }
