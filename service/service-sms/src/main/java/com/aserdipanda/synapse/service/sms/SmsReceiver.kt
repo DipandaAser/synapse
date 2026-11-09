@@ -7,14 +7,18 @@ import android.provider.Telephony
 import android.util.Log
 import com.aserdipanda.synapse.core.network.NetworkModule
 import com.aserdipanda.synapse.data.triggers.TriggersRepository
+import com.aserdipanda.synapse.data.triggers.local.ConditionEntity
 import com.aserdipanda.synapse.data.triggers.local.DatabaseProvider
-import com.aserdipanda.synapse.data.triggers.local.TriggerEntity
+import com.aserdipanda.synapse.data.triggers.local.Operator
+import com.aserdipanda.synapse.data.triggers.local.TriggerWithRelations
+import com.aserdipanda.synapse.data.triggers.local.WebhookConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 
 class SmsReceiver : BroadcastReceiver() {
 
@@ -28,28 +32,28 @@ class SmsReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                 val database = DatabaseProvider.getDatabase(context)
-                val repository = TriggersRepository(database.triggerDao(), database.appSettingDao())
+                val repository = TriggersRepository(DatabaseProvider.getDatabase(context))
                 
-                val activeTriggers = repository.getActiveTriggers()
-                Log.d("SmsReceiver", "Loaded ${activeTriggers.size} active triggers")
+                val activeTriggersWithRelations = repository.getActiveTriggersWithRelations()
+                Log.d("SmsReceiver", "Loaded ${activeTriggersWithRelations.size} active triggers")
                 
                 val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
                 for (smsMessage in messages) {
                     val sender = smsMessage.displayOriginatingAddress ?: ""
                     val messageBody = smsMessage.messageBody
+                    smsMessage.timestampMillis
 
-                    val matchingTriggers = activeTriggers.filter { trigger ->
-                        matchesTrigger(sender, messageBody, trigger)
+                    val matchingTriggers = activeTriggersWithRelations.filter { triggerWithRelations ->
+                        evaluateConditions(triggerWithRelations.conditions, sender, messageBody)
                     }
 
                     if (matchingTriggers.isNotEmpty()) {
                         Log.d("SmsReceiver", "MATCH FOUND! SMS from $sender matches ${matchingTriggers.size} trigger(s)")
                         
-                        matchingTriggers.forEach { trigger ->
-                            Log.d("SmsReceiver", "Processing trigger: ${trigger.name}")
+                        matchingTriggers.forEach { triggerWithRelations ->
+                            Log.d("SmsReceiver", "Processing trigger: ${triggerWithRelations.trigger.name}")
                             
-                            callWebhook(trigger.webhookUrl, sender, messageBody, trigger)
+                            executeActions(triggerWithRelations, sender, messageBody)
                         }
                     } else {
                         Log.d("SmsReceiver", "No matching triggers for SMS from $sender")
@@ -61,38 +65,122 @@ class SmsReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun matchesTrigger(sender: String, message: String, trigger: TriggerEntity): Boolean {
-        val senderMatches = sender.contains(trigger.senderPattern, ignoreCase = true)
+    private fun evaluateConditions(
+        conditions: List<ConditionEntity>,
+        sender: String,
+        messageBody: String
+    ): Boolean {
+        if (conditions.isEmpty()) {
+            Log.d("SmsReceiver", "No conditions defined, skipping trigger")
+            return false
+        }
         
-        val messageMatches = trigger.messagePattern?.let { pattern ->
-            message.contains(pattern, ignoreCase = true)
-        } ?: true // If no message pattern, consider it a match
-        
-        return senderMatches && messageMatches
+        return conditions.all { condition ->
+            val fieldValue = when (condition.field) {
+                "sender" -> sender
+                "message_body" -> messageBody
+                else -> {
+                    Log.w("SmsReceiver", "Unknown field: ${condition.field}")
+                    ""
+                }
+            }
+            
+            val matches = evaluateCondition(fieldValue, condition.operator, condition.value)
+            Log.d("SmsReceiver", "Condition check: ${condition.field} ${condition.operator} '${condition.value}' = $matches")
+            matches
+        }
     }
 
-    private fun callWebhook(webhookUrl: String, sender: String, message: String, trigger: TriggerEntity) {
-        val requestBodyRaw = trigger.webhookBody
-        val body = requestBodyRaw?.let {
-            val replacedBody = it.replace("{sender}", sender).replace("{message}", message)
-            replacedBody.toRequestBody(null)
+    private fun evaluateCondition(
+        fieldValue: String,
+        operator: Operator,
+        expectedValue: String
+    ): Boolean {
+        return when (operator) {
+            Operator.EQUALS -> fieldValue.equals(expectedValue, ignoreCase = true)
+            Operator.CONTAINS -> fieldValue.contains(expectedValue, ignoreCase = true)
+            Operator.START_WITH -> fieldValue.startsWith(expectedValue, ignoreCase = true)
+            Operator.END_WITH -> fieldValue.endsWith(expectedValue, ignoreCase = true)
+            Operator.DOES_NOT_CONTAINS -> !fieldValue.contains(expectedValue, ignoreCase = true)
         }
-        val url = webhookUrl.replace("{sender}", sender).replace("{message}", message)
+    }
 
-        val request = Request.Builder()
-            .url(url)
-            .method(trigger.webhookMethod, body)
-            .build()
+    private fun executeActions(
+        triggerWithRelations: TriggerWithRelations,
+        sender: String,
+        messageBody: String
+    ) {
+        triggerWithRelations.actions.forEach { action ->
+            try {
+                Log.d("SmsReceiver", "Executing action: ${action.type}")
+                when (action.type.uppercase()) {
+                    "WEBHOOK" -> executeWebhookAction(action.arg, sender, messageBody)
+                    "LOG" -> executeLogAction(action.arg, sender, messageBody)
+                    else -> Log.w("SmsReceiver", "Unknown action type: ${action.type}")
+                }
+            } catch (e: Exception) {
+                Log.e("SmsReceiver", "Error executing action ${action.type}", e)
+            }
+        }
+    }
+
+    private fun executeWebhookAction(arg: String, sender: String, messageBody: String) {
+        val config = WebhookConfig.fromArg(arg)
+        if (config == null) {
+            Log.e("SmsReceiver", "Webhook action has no valid settings, skipping: $arg")
+            return
+        }
         try {
+            val finalUrl = replaceTemplateVariables(config.url, sender, messageBody)
+            val finalBody = config.body?.let {
+                replaceTemplateVariables(it, sender, messageBody)
+            }
+
+            // OkHttp rejects a body on GET and HEAD, and requires one on POST, PUT and PATCH.
+            val method = config.method.trim().uppercase()
+            val requestBody = if (method in METHODS_WITHOUT_BODY) {
+                null
+            } else {
+                (finalBody ?: "").toRequestBody("application/json".toMediaType())
+            }
+
+            val request = Request.Builder()
+                .url(finalUrl)
+                .method(method, requestBody)
+                .build()
+
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
-                    Log.e("SmsReceiver", "Webhook call to $webhookUrl Failed: ${response.code} ${response.message}")
+                    Log.e("SmsReceiver", "Webhook call to $finalUrl Failed: ${response.code} ${response.message}")
                 } else {
-                    Log.d("SmsReceiver", "Webhook call to $webhookUrl Successful: ${response.body?.string()}")
+                    Log.d("SmsReceiver", "Webhook call to $finalUrl Successful: ${response.body?.string()}")
                 }
             }
         } catch (e: Exception) {
-            Log.e("SmsReceiver", "Webhook call to $webhookUrl Exception: ${e.message}")
+            Log.e("SmsReceiver", "Webhook action execution error", e)
         }
+    }
+
+    private fun executeLogAction(arg: String, sender: String, messageBody: String) {
+        try {
+            val json = JSONObject(arg)
+            val message = json.optString("message", "SMS received")
+            val finalMessage = replaceTemplateVariables(message, sender, messageBody)
+            Log.i("SmsReceiver", "LOG ACTION: $finalMessage")
+        } catch (e: Exception) {
+            Log.e("SmsReceiver", "Log action execution error", e)
+        }
+    }
+
+    private fun replaceTemplateVariables(template: String, sender: String, messageBody: String): String {
+        return template
+            .replace("{{sender}}", sender)
+            .replace("{{message}}", messageBody)
+            .replace("{{message_body}}", messageBody)
+            .replace("{{timestamp}}", System.currentTimeMillis().toString())
+    }
+
+    private companion object {
+        val METHODS_WITHOUT_BODY = setOf("GET", "HEAD")
     }
 }

@@ -1,50 +1,144 @@
 package com.aserdipanda.synapse.feature.triggers.ui
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.aserdipanda.synapse.data.triggers.local.ActionEntity
+import com.aserdipanda.synapse.data.triggers.local.ConditionEntity
+import com.aserdipanda.synapse.data.triggers.local.Operator
 import com.aserdipanda.synapse.data.triggers.local.TriggerEntity
+import com.aserdipanda.synapse.data.triggers.local.WebhookConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditTriggerScreen(
     modifier: Modifier = Modifier,
     trigger: TriggerEntity? = null,
-    onSave: (TriggerEntity) -> Unit,
+    senderCondition: ConditionEntity? = null,
+    messageCondition: ConditionEntity? = null,
+    actionEntity: ActionEntity? = null,
+    onBack: () -> Unit,
+    onSave: (trigger: TriggerEntity, senderCondition: ConditionEntity?, messageCondition: ConditionEntity?, action: ActionEntity) -> Unit,
 ) {
+    val jsonBodyExample = """
+        {
+            "sender": "{{sender}}",
+            "message": "{{message}}"
+        }
+    """.trimIndent()
     var name by remember { mutableStateOf(trigger?.name ?: "") }
-    var senderPattern by remember { mutableStateOf(trigger?.senderPattern ?: "") }
-    var messagePattern by remember { mutableStateOf(trigger?.messagePattern ?: "") }
-    var webhookUrl by remember { mutableStateOf(trigger?.webhookUrl ?: "") }
-    var webhookMethod by remember { mutableStateOf(trigger?.webhookMethod ?: "POST") }
-    var webhookBody by remember { mutableStateOf(trigger?.webhookBody ?: "") }
+
+    var senderPattern by remember { mutableStateOf(senderCondition?.value ?: "+1 246 ") }
+    var senderConditionOperator by remember { mutableStateOf(senderCondition?.operator ?: Operator.EQUALS) }
+    val senderInputTextLabel = senderConditionOperator.description()
+
+
+    var messageConditionOperator by remember { mutableStateOf(messageCondition?.operator ?: Operator.CONTAINS) }
+    // Starts empty: the field's "e.g., bills" label is the hint, and sample text must never be saved as a rule.
+    var messagePattern by remember { mutableStateOf(messageCondition?.value ?: "") }
+
+    val savedWebhook = remember { actionEntity?.let { WebhookConfig.fromArg(it.arg) } }
+    var webhookUrl by remember { mutableStateOf(savedWebhook?.url ?: "https://") }
+    var webhookMethod by remember { mutableStateOf(savedWebhook?.method ?: "POST") }
+    var webhookBody by remember {
+        mutableStateOf(savedWebhook?.body ?: if (trigger == null) jsonBodyExample else "")
+    }
+
+
+
+
+    val operators = Operator.entries
+
+
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(if (trigger == null) "Add Trigger" else "Edit Trigger") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
                 actions = {
                     TextButton(onClick = {
                         val triggerEntity = TriggerEntity(
                             id = trigger?.id ?: 0,
                             name = name,
-                            senderPattern = senderPattern,
-                            messagePattern = messagePattern.takeIf { it.isNotBlank() },
-                            webhookUrl = webhookUrl,
-                            webhookMethod = webhookMethod,
-                            webhookBody = webhookBody,
-                            isActive = trigger?.isActive ?: true,
+                            enabled = trigger?.enabled ?: true,
                             createdAt = trigger?.createdAt ?: System.currentTimeMillis(),
                             updatedAt = System.currentTimeMillis()
                         )
-                        onSave(triggerEntity)
+                        // A blank pattern means "no rule on this field". Saving it would create a
+                        // rule that matches nothing (EQUALS "") or everything (CONTAINS "").
+                        val senderConditionEntity = senderPattern.takeIf { it.isNotBlank() }?.let {
+                            ConditionEntity(
+                                id = senderCondition?.id ?: 0,
+                                triggerId = triggerEntity.id,
+                                field = "sender",
+                                operator = senderConditionOperator,
+                                value = it
+                            )
+                        }
+                        val messageConditionEntity = messagePattern.takeIf { it.isNotBlank() }?.let {
+                            ConditionEntity(
+                                id = messageCondition?.id ?: 0,
+                                triggerId = triggerEntity.id,
+                                field = "message_body",
+                                operator = messageConditionOperator,
+                                value = it
+                            )
+                        }
+                        val webhookConfig = WebhookConfig(
+                            url = webhookUrl.trim(),
+                            method = webhookMethod.trim().uppercase(),
+                            body = webhookBody.takeIf { it.isNotBlank() }
+                        )
+                        val webhookAction = ActionEntity(
+                            id = actionEntity?.id ?: 0,
+                            triggerId = triggerEntity.id,
+                            type = "WEBHOOK",
+                            arg = webhookConfig.toArg()
+                        )
+                        onSave(triggerEntity, senderConditionEntity, messageConditionEntity, webhookAction)
                     },
-                        enabled = name.isNotBlank() && senderPattern.isNotBlank() && webhookUrl.isNotBlank())
+                        enabled = name.isNotBlank() && (
+                                senderPattern.isNotBlank() || messagePattern.isNotBlank()
+                                ) && webhookUrl.isNotBlank() && webhookMethod.isNotBlank()
+                    )
                     {
                         Text("Save")
                     }
@@ -67,22 +161,45 @@ fun AddEditTriggerScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            
-            OutlinedTextField(
-                value = senderPattern,
-                onValueChange = { senderPattern = it },
-                label = { Text("Sender Pattern (e.g., 7515)") },
+
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-            
-            OutlinedTextField(
-                value = messagePattern,
-                onValueChange = { messagePattern = it },
-                label = { Text("Message Pattern (Optional)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                MyExposedDropdownMenu(
+                    options = operators,
+                    selectedValue = senderConditionOperator,
+                    onValueChange = { senderConditionOperator = it },
+                    optionLabel = { it.displayName },
+                    label = "Sender",
+                    modifier = Modifier.weight(0.65f)
+                )
+                OutlinedTextField(
+                    value = senderPattern,
+                    onValueChange = { senderPattern = it },
+                    label = { Text(senderInputTextLabel) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+
+
+                MyExposedDropdownMenu(
+                    options = operators,
+                    selectedValue = messageConditionOperator,
+                    onValueChange = { messageConditionOperator = it },
+                    optionLabel = { it.displayName },
+                    label = "Message",
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
+                )
+                OutlinedTextField(
+                    value = messagePattern,
+                    onValueChange = { messagePattern = it },
+                    label = { Text("e.g., bills") },
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    minLines = 1
+                )
+
 
             OutlinedTextField(
                 value = webhookMethod,
@@ -95,7 +212,7 @@ fun AddEditTriggerScreen(
             OutlinedTextField(
                 value = webhookUrl,
                 onValueChange = { webhookUrl = it },
-                label = { Text("Webhook URL") },
+                label = { Text("Webhook -URL") },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -104,8 +221,71 @@ fun AddEditTriggerScreen(
                 onValueChange = { webhookBody = it },
                 label = { Text("Webhook Body") },
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 5
+                minLines = 5,
             )
+
+        }
+    }
+}
+
+@Composable
+fun FormSection(title: String, content: @Composable () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        content()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun <T> MyExposedDropdownMenu(
+    modifier: Modifier = Modifier,
+    options: List<T>,
+    selectedValue: T,
+    onValueChange: (T) -> Unit,
+    optionLabel: (T) -> String = { it.toString() },
+    label: String = "",
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            modifier = Modifier
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
+            value = optionLabel(selectedValue),
+            onValueChange = {},
+            readOnly = true,
+            label = if (label.isNotEmpty()) {{ Text(label) }} else null,
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+            },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            singleLine = true,
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { selectionOption ->
+                DropdownMenuItem(
+                    text = { Text(optionLabel(selectionOption)) },
+                    onClick = {
+                        onValueChange(selectionOption)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }
@@ -115,7 +295,8 @@ fun AddEditTriggerScreen(
 fun AddTriggerScreenPreview() {
     AddEditTriggerScreen(
         trigger = null,
-        onSave = {},
+        onBack = {},
+        onSave = { _, _, _, _ -> },
     )
 }
 
@@ -125,9 +306,7 @@ fun EditTriggerScreenPreview() {
     val sampleTrigger = TriggerEntity(
         id = 1,
         name = "Bank Alert",
-        senderPattern = "7515",
-        webhookUrl = "https://example.com/webhook",
-        isActive = true
+        enabled = true
     )
-    AddEditTriggerScreen(trigger = sampleTrigger, onSave = {})
+    AddEditTriggerScreen(trigger = sampleTrigger, onBack = {}, onSave = { _, _, _, _ -> })
 }
