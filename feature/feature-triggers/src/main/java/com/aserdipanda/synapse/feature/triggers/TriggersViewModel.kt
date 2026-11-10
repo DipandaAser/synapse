@@ -19,11 +19,13 @@ class TriggersViewModel(
     private val _triggers = MutableStateFlow<List<TriggerWithRelations>>(emptyList())
     val triggers: StateFlow<List<TriggerWithRelations>> = _triggers.asStateFlow()
     
-    private val _isLoading = MutableStateFlow(false)
+    // True until the triggers first load, so Home doesn't show "no triggers yet" meanwhile.
+    private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-    
-    private val _isSmsListenerEnabled = MutableStateFlow(false)
-    val isSmsListenerEnabled: StateFlow<Boolean> = _isSmsListenerEnabled.asStateFlow()
+
+    // Null until the saved setting loads, so Home doesn't show "Paused" meanwhile.
+    private val _isSmsListenerEnabled = MutableStateFlow<Boolean?>(null)
+    val isSmsListenerEnabled: StateFlow<Boolean?> = _isSmsListenerEnabled.asStateFlow()
 
     init {
         loadTriggers()

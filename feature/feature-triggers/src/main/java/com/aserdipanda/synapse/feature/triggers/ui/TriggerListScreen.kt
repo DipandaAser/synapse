@@ -1,10 +1,12 @@
 package com.aserdipanda.synapse.feature.triggers.ui
 
-import androidx.compose.foundation.background
+import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
@@ -14,14 +16,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.aserdipanda.core.ui.theme.SynapseAppTheme
+import com.aserdipanda.synapse.feature.triggers.R
+import com.aserdipanda.synapse.feature.triggers.TriggerTemplate
 
 
 data class Trigger(
@@ -34,129 +41,109 @@ data class Trigger(
     val isEnabled: Boolean
 )
 
+// Room below the content for the New trigger button, so it never covers the last item.
+private val FabClearance = 88.dp
+
 /**
- * The main screen that holds the Scaffold (top bar, content, and FAB).
+ * Home: whether Synapse is listening, then the triggers, or examples to start from when there
+ * are none. [triggers] is null until they load, so the empty state never flashes.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TriggerListScreen(
-    isServiceActive: Boolean,
-    triggers: List<Trigger>,
-    onToggleService: (Boolean) -> Unit,
+    listenerStatus: ListenerStatus,
+    triggers: List<Trigger>?,
+    onListeningChange: (Boolean) -> Unit,
+    onAllowSmsAccess: () -> Unit,
     onAddTrigger: () -> Unit,
+    onUseTemplate: (TriggerTemplate) -> Unit,
     onEditTrigger: (Trigger) -> Unit,
     onToggleTrigger: (Trigger, Boolean) -> Unit,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
+    // The bar takes the surfaceContainer color once content scrolls under it.
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TriggerTopAppBar(
-                isListening = isServiceActive,
-                onListenToggled = onToggleService
+            TopAppBar(
+                title = { Text(stringResource(R.string.home_title)) },
+                scrollBehavior = scrollBehavior
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            val tooltipState = rememberTooltipState()
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-                tooltip = { PlainTooltip { Text("Add Trigger") } },
-                state = tooltipState,
+            val newTrigger = stringResource(R.string.home_new_trigger)
+            ExtendedFloatingActionButton(
+                onClick = onAddTrigger,
+                // This button hides its text from accessibility services (the text goes away
+                // when it collapses), so the icon carries the label.
+                icon = { Icon(Icons.Default.Add, contentDescription = newTrigger) },
+                text = { Text(newTrigger) }
+            )
+        }
+    ) { innerPadding ->
+        if (triggers == null) return@Scaffold
+
+        val statusCard = @Composable {
+            ListenerStatusCard(
+                status = listenerStatus,
+                triggerCount = triggers.size,
+                enabledTriggerCount = triggers.count { it.isEnabled },
+                onListeningChange = onListeningChange,
+                onAllowSmsAccess = onAllowSmsAccess
+            )
+        }
+
+        if (triggers.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(innerPadding)
+                    .padding(start = 16.dp, end = 16.dp, bottom = FabClearance)
             ) {
-                FloatingActionButton(onClick = onAddTrigger) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Trigger"
+                statusCard()
+                // Centers the empty state in the space left, and lets it scroll on small screens.
+                Spacer(Modifier.weight(1f))
+                NoTriggersYet(
+                    onUseTemplate = onUseTemplate,
+                    modifier = Modifier.padding(vertical = 24.dp)
+                )
+                Spacer(Modifier.weight(1f))
+            }
+        } else {
+            val layoutDirection = LocalLayoutDirection.current
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = innerPadding.calculateStartPadding(layoutDirection) + 16.dp,
+                    top = innerPadding.calculateTopPadding(),
+                    end = innerPadding.calculateEndPadding(layoutDirection) + 16.dp,
+                    bottom = innerPadding.calculateBottomPadding() + FabClearance
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item { statusCard() }
+                item {
+                    Text(
+                        text = stringResource(R.string.home_triggers_heading),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(start = 4.dp, top = 4.dp, end = 4.dp)
+                            .semantics { heading() }
+                    )
+                }
+                items(triggers, key = { it.id }) { trigger ->
+                    TriggerCard(
+                        trigger = trigger,
+                        onClick = { onEditTrigger(trigger) },
+                        onToggle = { isEnabled -> onToggleTrigger(trigger, isEnabled) }
                     )
                 }
             }
         }
-    ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item {
-                StatusBanner(
-                    isActive = isServiceActive,
-                    enabledTriggerCount = triggers.count { it.isEnabled }
-                )
-            }
-            items(triggers, key = { it.id }) { trigger ->
-                TriggerCard(
-                    trigger = trigger,
-                    onClick = { onEditTrigger(trigger) },
-                    onToggle = { isEnabled -> onToggleTrigger(trigger, isEnabled) }
-                )
-            }
-        }
-    }
-}
-
-/**
- * The custom Top App Bar that matches your design.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TriggerTopAppBar(
-    isListening: Boolean,
-    onListenToggled: (Boolean) -> Unit
-) {
-    TopAppBar(
-        title = {
-            Text(
-                text = "Synapse",
-                style = MaterialTheme.typography.titleLarge
-            )
-        },
-        actions = {
-            Text("Listen")
-            Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-            Switch(
-                checked = isListening,
-                onCheckedChange = onListenToggled
-            )
-        },
-    )
-}
-
-/**
- * The green/red status banner
- */
-@Composable
-fun StatusBanner(isActive: Boolean, enabledTriggerCount: Int) {
-    val backgroundColor = if (isActive) Color(0xFFE6F7EA) else Color(0xFFFFF0F0)
-    val contentColor = if (isActive) Color(0xFF34A853) else Color.Red
-    val text = if (isActive) {
-        "SMS Listener Active • $enabledTriggerCount triggers enabled"
-    } else {
-        "SMS Listener Inactive"
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.small)
-            .background(backgroundColor)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Filled.CheckCircle,
-            contentDescription = null,
-            tint = contentColor,
-            modifier = Modifier.size(10.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            color = contentColor,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp
-        )
     }
 }
 
@@ -286,7 +273,7 @@ fun TriggerStatusText(trigger: Trigger) {
 
 
 
-@Preview(showBackground = true)
+@Preview(name = "Listening", showBackground = true)
 @Composable
 fun TriggerListScreenPreview() {
     val fakeTriggers = listOf(
@@ -295,12 +282,32 @@ fun TriggerListScreenPreview() {
         Trigger(3, "Order Updates", "AMAZON", "\"delivered\"", "orders.api.com/status", null, false)
     )
 
-    SynapseAppTheme {
+    SynapseAppTheme(dynamicColor = false) {
         TriggerListScreen(
-            isServiceActive = true,
+            listenerStatus = ListenerStatus.Listening,
             triggers = fakeTriggers,
-            onToggleService = {},
+            onListeningChange = {},
+            onAllowSmsAccess = {},
             onAddTrigger = {},
+            onUseTemplate = {},
+            onEditTrigger = {},
+            onToggleTrigger = { _, _ -> }
+        )
+    }
+}
+
+@Preview(name = "No triggers, light", showBackground = true, heightDp = 917)
+@Preview(name = "No triggers, dark", showBackground = true, heightDp = 917, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun TriggerListScreenEmptyPreview() {
+    SynapseAppTheme(dynamicColor = false) {
+        TriggerListScreen(
+            listenerStatus = ListenerStatus.Listening,
+            triggers = emptyList(),
+            onListeningChange = {},
+            onAllowSmsAccess = {},
+            onAddTrigger = {},
+            onUseTemplate = {},
             onEditTrigger = {},
             onToggleTrigger = { _, _ -> }
         )
