@@ -24,7 +24,7 @@ synapse/
 │   └── core-ui/                  # Theme and shared Compose components
 │       └── src/main/java/com/aserdipanda/core/ui/
 │           ├── theme/            # Colors, type and SynapseAppTheme
-│           └── components/       # SynapseLogo, RuleSentence
+│           └── components/       # SynapseLogo, SynapseGlyph, RuleSentence
 │
 ├── data/                         # Data Modules
 │   └── data-triggers/            # Triggers data layer
@@ -51,7 +51,10 @@ synapse/
 │       └── src/main/java/com/aserdipanda/synapse/feature/triggers/
 │           ├── ui/
 │           │   ├── TriggerListScreen.kt
+│           │   ├── ListenerStatusCard.kt
+│           │   ├── NoTriggersYet.kt
 │           │   └── AddEditTriggerScreen.kt
+│           ├── TriggerTemplate.kt
 │           └── TriggersViewModel.kt
 │
 └── service/                      # Service Modules
@@ -105,7 +108,7 @@ synapse/
 
 **Contains**:
 - `theme/` - Color schemes, type scale and `SynapseAppTheme`
-- `components/` - `SynapseLogo`, and `RuleSentence` for reading a trigger's rules as a sentence
+- `components/` - `SynapseLogo`, `SynapseGlyph` (the logo's drawing in any colors, for illustrations), and `RuleSentence` for reading a trigger's rules as a sentence
 
 **Dependencies**: None (leaf module)
 
@@ -151,12 +154,16 @@ synapse/
 
 **Contains**:
 - Jetpack Compose screens
-  - `TriggerListScreen.kt` - List of triggers
+  - `TriggerListScreen.kt` - Home: whether Synapse is listening, then the triggers
+  - `ListenerStatusCard.kt` - Listening, paused, or SMS access off
+  - `NoTriggersYet.kt` - Home without triggers, with examples to start from
   - `AddEditTriggerScreen.kt` - Add/Edit trigger form
+- `TriggerTemplate.kt` - The examples, which prefill a new trigger
 - `TriggersViewModel.kt` - UI state management
 
 **Dependencies**: 
 - `core-common`
+- `core-ui`
 - `data-triggers`
 
 **Technologies**:
