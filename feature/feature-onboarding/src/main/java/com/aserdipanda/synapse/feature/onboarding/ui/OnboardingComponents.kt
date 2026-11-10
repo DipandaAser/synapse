@@ -176,24 +176,6 @@ internal fun CardRow(
 }
 
 @Composable
-internal fun Tag(text: String) {
-    Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    ) {
-        Box(
-            modifier = Modifier
-                .heightIn(min = 24.dp)
-                .padding(horizontal = 8.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(text = text, style = MaterialTheme.typography.labelMedium)
-        }
-    }
-}
-
-@Composable
 internal fun InfoNote(text: String) {
     Row(
         modifier = Modifier.padding(horizontal = 4.dp),
