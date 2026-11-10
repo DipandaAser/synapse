@@ -17,9 +17,14 @@ synapse/
 │   │   └── src/main/java/com/aserdipanda/synapse/core/common/
 │   │       └── Constants.kt
 │   │
-│   └── core-network/             # Network configuration
-│       └── src/main/java/com/aserdipanda/synapse/core/network/
-│           └── NetworkModule.kt
+│   ├── core-network/             # Network configuration
+│   │   └── src/main/java/com/aserdipanda/synapse/core/network/
+│   │       └── NetworkModule.kt
+│   │
+│   └── core-ui/                  # Theme and shared Compose components
+│       └── src/main/java/com/aserdipanda/core/ui/
+│           ├── theme/            # Colors, type and SynapseAppTheme
+│           └── components/       # SynapseLogo, RuleSentence
 │
 ├── data/                         # Data Modules
 │   └── data-triggers/            # Triggers data layer
@@ -32,6 +37,16 @@ synapse/
 │           └── TriggersRepository.kt
 │
 ├── feature/                      # Feature Modules
+│   ├── feature-onboarding/       # Welcome and permission screens
+│   │   └── src/main/java/com/aserdipanda/synapse/feature/onboarding/
+│   │       ├── ui/
+│   │       │   ├── WelcomeScreen.kt
+│   │       │   ├── PermissionsScreen.kt
+│   │       │   ├── SmsDeniedScreen.kt
+│   │       │   └── SmsBlockedScreen.kt
+│   │       ├── OnboardingViewModel.kt
+│   │       └── SmsAccess.kt
+│   │
 │   └── feature-triggers/         # Triggers UI and business logic
 │       └── src/main/java/com/aserdipanda/synapse/feature/triggers/
 │           ├── ui/
@@ -85,6 +100,17 @@ synapse/
 
 ---
 
+### `:core:core-ui` - UI Core Module
+**Purpose**: The Synapse theme, and the Compose components that features share.
+
+**Contains**:
+- `theme/` - Color schemes, type scale and `SynapseAppTheme`
+- `components/` - `SynapseLogo`, and `RuleSentence` for reading a trigger's rules as a sentence
+
+**Dependencies**: None (leaf module)
+
+---
+
 ### `:data:data-triggers` - Triggers Data Module
 **Purpose**: Single source of truth for trigger-related data.
 
@@ -101,6 +127,22 @@ synapse/
 - Room Database
 - Kotlin Coroutines & Flow
 - Type Converters for List<String>
+
+---
+
+### `:feature:feature-onboarding` - Onboarding Feature Module
+**Purpose**: First launch and SMS access: the welcome screen and the permission screens.
+
+**Contains**:
+- `WelcomeScreen.kt` - What Synapse does, shown on first launch only
+- `PermissionsScreen.kt` - Explains SMS and notification access before Android asks
+- `SmsDeniedScreen.kt` - Asks again after one denial
+- `SmsBlockedScreen.kt` - Leads to the app's settings once Android won't ask again
+- `OnboardingViewModel.kt` - Saved onboarding and permission state
+
+**Dependencies**:
+- `core-ui`
+- `data-triggers`
 
 ---
 
@@ -277,5 +319,5 @@ synapse/
 
 ---
 
-**Last Updated**: October 2025  
+**Last Updated**: November 2026  
 **Version**: 1.0.0

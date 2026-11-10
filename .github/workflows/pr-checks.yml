@@ -73,7 +73,9 @@ jobs:
             comment += '- :app\n';
             comment += '- :core:core-common\n';
             comment += '- :core:core-network\n';
+            comment += '- :core:core-ui\n';
             comment += '- :data:data-triggers\n';
+            comment += '- :feature:feature-onboarding\n';
             comment += '- :feature:feature-triggers\n';
             comment += '- :service:service-sms\n\n';
             comment += 'Please ensure all checklist items in the PR template are completed.';

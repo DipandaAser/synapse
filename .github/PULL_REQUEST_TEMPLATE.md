@@ -20,7 +20,9 @@
 - [ ] `:app` - Application module
 - [ ] `:core:core-common` - Common utilities
 - [ ] `:core:core-network` - Network layer
+- [ ] `:core:core-ui` - Theme and shared UI components
 - [ ] `:data:data-triggers` - Data layer
+- [ ] `:feature:feature-onboarding` - Welcome and permissions
 - [ ] `:feature:feature-triggers` - Triggers feature
 - [ ] `:service:service-sms` - SMS service
 - [ ] Configuration files (Gradle, manifest, etc.)
