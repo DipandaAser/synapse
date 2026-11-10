@@ -121,16 +121,30 @@ class TriggersRepository(
         actionDao.deleteAction(action)
     }
 
-    suspend fun isSmsListenerEnabled(): Boolean {
-        val setting = appSettingDao.getSetting(Constants.SETTING_KEY_SMS_LISTENER_ENABLED)
-        return setting?.value?.toBoolean() ?: false
-    }
+    suspend fun isSmsListenerEnabled(): Boolean =
+        getBooleanSetting(Constants.SETTING_KEY_SMS_LISTENER_ENABLED)
 
-    suspend fun setSmsListenerEnabled(enabled: Boolean) {
-        val setting = AppSettingEntity(
-            key = Constants.SETTING_KEY_SMS_LISTENER_ENABLED,
-            value = enabled.toString()
-        )
-        appSettingDao.upsert(setting)
+    suspend fun setSmsListenerEnabled(enabled: Boolean) =
+        setBooleanSetting(Constants.SETTING_KEY_SMS_LISTENER_ENABLED, enabled)
+
+    suspend fun isOnboardingCompleted(): Boolean =
+        getBooleanSetting(Constants.SETTING_KEY_ONBOARDING_COMPLETED)
+
+    suspend fun setOnboardingCompleted() =
+        setBooleanSetting(Constants.SETTING_KEY_ONBOARDING_COMPLETED, true)
+
+    // Android reports the same state before the first SMS request and after a permanent
+    // denial, so Synapse remembers that it has asked.
+    suspend fun hasRequestedSmsPermission(): Boolean =
+        getBooleanSetting(Constants.SETTING_KEY_SMS_PERMISSION_REQUESTED)
+
+    suspend fun setSmsPermissionRequested() =
+        setBooleanSetting(Constants.SETTING_KEY_SMS_PERMISSION_REQUESTED, true)
+
+    private suspend fun getBooleanSetting(key: String): Boolean =
+        appSettingDao.getSetting(key)?.value?.toBoolean() ?: false
+
+    private suspend fun setBooleanSetting(key: String, value: Boolean) {
+        appSettingDao.upsert(AppSettingEntity(key = key, value = value.toString()))
     }
 }

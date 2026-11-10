@@ -54,6 +54,7 @@ dependencies {
     implementation(project(":core:core-ui"))
     implementation(project(":core:core-network"))
     implementation(project(":data:data-triggers"))
+    implementation(project(":feature:feature-onboarding"))
     implementation(project(":feature:feature-triggers"))
     implementation(project(":service:service-sms"))
 
@@ -75,6 +76,7 @@ dependencies {
     
     // Navigation
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     
     // Room
     implementation(libs.bundles.room)

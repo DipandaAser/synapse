@@ -1,0 +1,49 @@
+<resources>
+    <!-- Shared -->
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_not_now">Not now</string>
+    <string name="onboarding_sms">SMS</string>
+    <string name="onboarding_notifications">Notifications</string>
+    <string name="onboarding_allowed">Allowed</string>
+    <string name="onboarding_not_allowed">Not allowed</string>
+
+    <!-- Welcome -->
+    <string name="welcome_logo_description">Synapse</string>
+    <string name="welcome_title">Turn texts into webhooks</string>
+    <string name="welcome_body">Synapse checks the SMS this phone receives. When one matches your rules, it sends the details to your server or automation tool.</string>
+    <string name="welcome_example_label">Example trigger</string>
+    <string name="welcome_match_title">Match the texts you care about</string>
+    <string name="welcome_match_body">Rules on the sender and the message text.</string>
+    <string name="welcome_webhook_title">Call your webhook</string>
+    <string name="welcome_webhook_body">Send the sender and message as JSON to any https URL.</string>
+    <string name="welcome_private_title">Stays on this phone</string>
+    <string name="welcome_private_body">No account, no Synapse server. Texts go only where your triggers send them.</string>
+    <string name="welcome_get_started">Get started</string>
+
+    <!-- Permissions, before Android asks. Android 12 and earlier only ask for SMS. -->
+    <string name="permissions_title_both">Synapse needs two permissions</string>
+    <string name="permissions_title_sms">Synapse needs SMS access</string>
+    <string name="permissions_body_both">Android asks for each one next. Here is what they are for.</string>
+    <string name="permissions_body_sms">Android asks for it next. Here is what it is for.</string>
+    <string name="permissions_sms_body">Read incoming texts so Synapse can check them against your triggers. A text leaves the phone only when a trigger sends it.</string>
+    <string name="permissions_notifications_tag">Android 13+</string>
+    <string name="permissions_notifications_body">Android shows a notification while Synapse listens in the background.</string>
+    <string name="permissions_note_both">You can change either one later in Android Settings.</string>
+    <string name="permissions_note_sms">You can change it later in Android Settings.</string>
+    <string name="permissions_continue">Continue</string>
+
+    <!-- SMS denied once: Android can still ask. -->
+    <string name="sms_denied_title">SMS access is off</string>
+    <string name="sms_denied_body">Without it, Synapse can\'t check incoming texts, so none of your triggers run. Your triggers stay saved.</string>
+    <string name="sms_denied_allow">Allow SMS access</string>
+
+    <!-- SMS denied for good: only the app's settings page can allow it. -->
+    <string name="sms_blocked_title">Turn on SMS access in Settings</string>
+    <string name="sms_blocked_body">Android won\'t ask again after a second denial. You can still allow it from Synapse\'s app settings.</string>
+    <string name="sms_blocked_step_open">Tap &lt;b>Open settings&lt;/b></string>
+    <string name="sms_blocked_step_permissions">Choose &lt;b>Permissions&lt;/b>, then &lt;b>SMS&lt;/b></string>
+    <string name="sms_blocked_step_allow">Select &lt;b>Allow&lt;/b></string>
+    <string name="sms_blocked_note">Synapse checks again when you come back and starts listening once access is on.</string>
+    <string name="sms_blocked_open_settings">Open settings</string>
+    <string name="sms_access_allowed">SMS access allowed</string>
+</resources>
