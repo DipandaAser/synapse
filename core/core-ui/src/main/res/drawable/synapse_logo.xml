@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The visible 72 x 72 area of the launcher icon: the S glyph on brand teal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="72"
+    android:viewportHeight="72">
+    <path
+        android:fillColor="#006A62"
+        android:pathData="M0,0h72v72h-72z" />
+    <group
+        android:translateX="-18"
+        android:translateY="-18">
+        <path
+            android:pathData="M68 34H50a10 10 0 0 0 0 20h8a10 10 0 0 1 0 20H40"
+            android:strokeWidth="8"
+            android:strokeColor="#FFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <!-- Amber: the incoming SMS. -->
+        <path
+            android:fillColor="#FFB960"
+            android:pathData="M60.5 34a7.5 7.5 0 1 0 15 0a7.5 7.5 0 1 0 -15 0" />
+        <!-- White: the webhook it reaches. -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M32.5 74a7.5 7.5 0 1 0 15 0a7.5 7.5 0 1 0 -15 0" />
+    </group>
+</vector>
