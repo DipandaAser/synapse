@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status bar and notification small icon: the Synapse glyph in white on transparent,
+     with a thicker stroke and larger nodes so it stays legible at 24 dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Centers the glyph (x 32 to 76, y 26 to 82 on the launcher canvas) in the 64 viewport. -->
+    <group
+        android:translateX="-22"
+        android:translateY="-22">
+        <path
+            android:pathData="M68 34H50a10 10 0 0 0 0 20h8a10 10 0 0 1 0 20H40"
+            android:strokeWidth="9"
+            android:strokeColor="#FFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M60 34a8 8 0 1 0 16 0a8 8 0 1 0 -16 0" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M32 74a8 8 0 1 0 16 0a8 8 0 1 0 -16 0" />
+    </group>
+</vector>
