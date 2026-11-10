@@ -58,11 +58,18 @@ synapse/
 │           └── TriggersViewModel.kt
 │
 └── service/                      # Service Modules
-    └── service-sms/              # SMS handling services
-        └── src/main/java/com/aserdipanda/synapse/service/sms/
-            ├── SmsListenerService.kt
-            ├── SmsReceiver.kt
-            └── BootCompletedReceiver.kt
+    ├── service-sms/              # Listening for SMS
+    │   └── src/main/java/com/aserdipanda/synapse/service/sms/
+    │       ├── SmsReceiver.kt
+    │       └── SmsListener.kt
+    │
+    └── service-triggers/         # Running the triggers a text matches
+        └── src/main/java/com/aserdipanda/synapse/service/triggers/
+            ├── TriggerRunner.kt
+            ├── Sms.kt
+            ├── TriggerMatcher.kt
+            ├── Webhook.kt
+            └── TriggerWorker.kt
 ```
 
 ## 🏗️ Module Architecture
@@ -138,7 +145,7 @@ synapse/
 
 **Contains**:
 - `WelcomeScreen.kt` - What Synapse does, shown on first launch only
-- `PermissionsScreen.kt` - Explains SMS and notification access before Android asks
+- `PermissionsScreen.kt` - Explains SMS access before Android asks
 - `SmsDeniedScreen.kt` - Asks again after one denial
 - `SmsBlockedScreen.kt` - Leads to the app's settings once Android won't ask again
 - `OnboardingViewModel.kt` - Saved onboarding and permission state
@@ -174,21 +181,37 @@ synapse/
 ---
 
 ### `:service:service-sms` - SMS Service Module
-**Purpose**: Background SMS processing and listening.
+**Purpose**: Listens for SMS, with nothing running in the background, and hands each text to `service-triggers`.
 
 **Contains**:
-- `SmsListenerService.kt` - Foreground service for SMS listening
-- `SmsReceiver.kt` - Broadcast receiver for SMS
-- `BootCompletedReceiver.kt` - Auto-start on device boot
+- `SmsReceiver.kt` - Declared in the manifest, so Android starts Synapse for each incoming SMS
+- `SmsListener.kt` - Turns listening on or off by enabling or disabling the receiver
 
 **Dependencies**: 
-- `core-common`
+- `data-triggers`
+- `service-triggers`
+
+**Technologies**:
+- Broadcast Receivers
+
+---
+
+### `:service:service-triggers` - Triggers Service Module
+**Purpose**: Runs triggers: finds the ones a text matches and runs their actions in the background. It's separate from `service-sms` so the trigger screens can reuse it, for example to send a test.
+
+**Contains**:
+- `TriggerRunner.kt` - Queues a run of each active trigger a text matches
+- `Sms.kt` - One incoming text, its parts joined
+- `TriggerMatcher.kt` - Whether an SMS meets a trigger's conditions
+- `Webhook.kt` - A trigger's webhook request, and which failed calls to retry
+- `TriggerWorker.kt` - Runs a trigger's actions in WorkManager, and retries failed webhook calls
+
+**Dependencies**:
 - `core-network`
 - `data-triggers`
 
 **Technologies**:
-- Android Services
-- Broadcast Receivers
+- WorkManager
 - OkHttp for API calls
 
 ---
@@ -207,6 +230,11 @@ synapse/
     │ -triggers│      │  -sms       │   │  -triggers  │   │  -common    │
     └────┬─────┘      └──────┬──────┘   └──────┬──────┘   │  -network   │
          │                   │                  │          └─────────────┘
+         │            ┌──────▼──────┐           │
+         │            │  :service   │           │
+         │            │  -triggers  │           │
+         │            └──────┬──────┘           │
+         │                   │                  │
          └───────────────────┴──────────────────┘
                              │
                     ┌────────┴────────┐
@@ -291,6 +319,7 @@ synapse/
 - **Database**: Room
 - **Async**: Kotlin Coroutines + Flow
 - **Network**: OkHttp
+- **Background work**: WorkManager
 - **Architecture**: Multi-module + MVVM
 
 ## 📦 Building the Project
