@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed icon layer (Android 13+): the foreground glyph in one color.
+     The launcher only uses its shape and tints it to match the wallpaper. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M68 34H50a10 10 0 0 0 0 20h8a10 10 0 0 1 0 20H40"
+        android:strokeWidth="8"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60.5 34a7.5 7.5 0 1 0 15 0a7.5 7.5 0 1 0 -15 0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32.5 74a7.5 7.5 0 1 0 15 0a7.5 7.5 0 1 0 -15 0" />
+</vector>
