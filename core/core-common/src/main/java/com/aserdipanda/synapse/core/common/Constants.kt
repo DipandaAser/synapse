@@ -9,4 +9,6 @@ object Constants {
 
     // App Settings Keys
     const val SETTING_KEY_SMS_LISTENER_ENABLED = "sms_listener_enabled"
+    const val SETTING_KEY_ONBOARDING_COMPLETED = "onboarding_completed"
+    const val SETTING_KEY_SMS_PERMISSION_REQUESTED = "sms_permission_requested"
 }

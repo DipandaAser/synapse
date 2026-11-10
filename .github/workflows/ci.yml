@@ -113,7 +113,9 @@ jobs:
           - ':app'
           - ':core:core-common'
           - ':core:core-network'
+          - ':core:core-ui'
           - ':data:data-triggers'
+          - ':feature:feature-onboarding'
           - ':feature:feature-triggers'
           - ':service:service-sms'
 

@@ -33,6 +33,7 @@ include(":core:core-network")
 include(":data:data-triggers")
 
 // Feature modules
+include(":feature:feature-onboarding")
 include(":feature:feature-triggers")
 
 // Service modules

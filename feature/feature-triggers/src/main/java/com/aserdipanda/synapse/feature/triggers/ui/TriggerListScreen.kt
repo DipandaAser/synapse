@@ -45,7 +45,8 @@ fun TriggerListScreen(
     onToggleService: (Boolean) -> Unit,
     onAddTrigger: () -> Unit,
     onEditTrigger: (Trigger) -> Unit,
-    onToggleTrigger: (Trigger, Boolean) -> Unit
+    onToggleTrigger: (Trigger, Boolean) -> Unit,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
     Scaffold(
         topBar = {
@@ -54,6 +55,7 @@ fun TriggerListScreen(
                 onListenToggled = onToggleService
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             val tooltipState = rememberTooltipState()
             TooltipBox(

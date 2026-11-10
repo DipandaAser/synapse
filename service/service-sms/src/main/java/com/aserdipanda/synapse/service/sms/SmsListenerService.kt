@@ -54,9 +54,6 @@ class SmsListenerService : Service() {
 
         startForeground(Constants.SMS_LISTENER_NOTIFICATION_ID, notification)
 
-        val filter = IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
-        registerReceiver(smsReceiver, filter)
-
         return START_STICKY
     }
 
@@ -64,6 +61,12 @@ class SmsListenerService : Service() {
         super.onCreate()
         Log.d(TAG, "Service onCreate() called")
         isRunning = true
+
+        // Registered once per service: onStartCommand runs again on every start request, and a
+        // second registration would handle each SMS twice.
+        val filter = IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
+        registerReceiver(smsReceiver, filter)
+
         // Save state to database
         serviceScope.launch {
             try {
