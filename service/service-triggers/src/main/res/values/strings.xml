@@ -1,0 +1,5 @@
+<resources>
+    <!-- Android 11 and earlier show a notification while a webhook call runs. -->
+    <string name="webhook_channel_name">Webhook calls</string>
+    <string name="webhook_sending">Sending to your webhook</string>
+</resources>
