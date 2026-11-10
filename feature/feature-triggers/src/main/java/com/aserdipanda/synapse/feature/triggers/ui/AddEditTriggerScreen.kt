@@ -33,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,7 @@ import com.aserdipanda.synapse.data.triggers.local.ConditionEntity
 import com.aserdipanda.synapse.data.triggers.local.Operator
 import com.aserdipanda.synapse.data.triggers.local.TriggerEntity
 import com.aserdipanda.synapse.data.triggers.local.WebhookConfig
+import com.aserdipanda.synapse.feature.triggers.TriggerTemplate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +52,9 @@ fun AddEditTriggerScreen(
     senderCondition: ConditionEntity? = null,
     messageCondition: ConditionEntity? = null,
     actionEntity: ActionEntity? = null,
+    // A new trigger started from an example: its name and message rule are filled in, and it
+    // matches any sender.
+    template: TriggerTemplate? = null,
     onBack: () -> Unit,
     onSave: (trigger: TriggerEntity, senderCondition: ConditionEntity?, messageCondition: ConditionEntity?, action: ActionEntity) -> Unit,
 ) {
@@ -59,16 +64,19 @@ fun AddEditTriggerScreen(
             "message": "{{message}}"
         }
     """.trimIndent()
-    var name by remember { mutableStateOf(trigger?.name ?: "") }
+    val templateName = template?.let { stringResource(it.title) }
+    var name by remember { mutableStateOf(trigger?.name ?: templateName ?: "") }
 
-    var senderPattern by remember { mutableStateOf(senderCondition?.value ?: "+1 246 ") }
+    var senderPattern by remember {
+        mutableStateOf(senderCondition?.value ?: if (template != null) "" else "+1 246 ")
+    }
     var senderConditionOperator by remember { mutableStateOf(senderCondition?.operator ?: Operator.EQUALS) }
     val senderInputTextLabel = senderConditionOperator.description()
 
 
     var messageConditionOperator by remember { mutableStateOf(messageCondition?.operator ?: Operator.CONTAINS) }
     // Starts empty: the field's "e.g., bills" label is the hint, and sample text must never be saved as a rule.
-    var messagePattern by remember { mutableStateOf(messageCondition?.value ?: "") }
+    var messagePattern by remember { mutableStateOf(messageCondition?.value ?: template?.messageContains ?: "") }
 
     val savedWebhook = remember { actionEntity?.let { WebhookConfig.fromArg(it.arg) } }
     var webhookUrl by remember { mutableStateOf(savedWebhook?.url ?: "https://") }

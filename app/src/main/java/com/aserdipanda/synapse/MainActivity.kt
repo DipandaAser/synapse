@@ -1,12 +1,15 @@
 package com.aserdipanda.synapse
 
+import android.Manifest
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -34,14 +38,17 @@ import com.aserdipanda.synapse.feature.onboarding.OnboardingViewModel
 import com.aserdipanda.synapse.feature.onboarding.OnboardingViewModelFactory
 import com.aserdipanda.synapse.feature.onboarding.SmsAccess
 import com.aserdipanda.synapse.feature.onboarding.isSmsPermissionGranted
+import com.aserdipanda.synapse.feature.onboarding.openAppSettings
 import com.aserdipanda.synapse.feature.onboarding.smsAccess
 import com.aserdipanda.synapse.feature.onboarding.ui.PermissionsScreen
 import com.aserdipanda.synapse.feature.onboarding.ui.SmsBlockedScreen
 import com.aserdipanda.synapse.feature.onboarding.ui.SmsDeniedScreen
 import com.aserdipanda.synapse.feature.onboarding.ui.WelcomeScreen
+import com.aserdipanda.synapse.feature.triggers.TriggerTemplate
 import com.aserdipanda.synapse.feature.triggers.TriggersViewModel
 import com.aserdipanda.synapse.feature.triggers.TriggersViewModelFactory
 import com.aserdipanda.synapse.feature.triggers.ui.AddEditTriggerScreen
+import com.aserdipanda.synapse.feature.triggers.ui.ListenerStatus
 import com.aserdipanda.synapse.feature.triggers.ui.Trigger
 import com.aserdipanda.synapse.feature.triggers.ui.TriggerListScreen
 import com.aserdipanda.synapse.service.sms.SmsListenerService
@@ -54,8 +61,11 @@ private object Routes {
     const val SMS_DENIED = "sms_denied"
     const val SMS_BLOCKED = "sms_blocked"
     const val HOME = "trigger_list"
-    const val ADD_TRIGGER = "add_trigger"
+    const val ADD_TRIGGER = "add_trigger?template={template}"
     const val EDIT_TRIGGER = "edit_trigger/{triggerId}"
+
+    fun addTrigger(template: TriggerTemplate? = null) =
+        if (template == null) "add_trigger" else "add_trigger?template=${template.name}"
 }
 
 class MainActivity : ComponentActivity() {
@@ -75,9 +85,13 @@ class MainActivity : ComponentActivity() {
             SynapseAppTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     val onboardingCompleted by onboardingViewModel.isOnboardingCompleted.collectAsState()
-                    // Waits for the saved value, so returning users never see the welcome screen.
-                    onboardingCompleted?.let { completed ->
-                        val startDestination = remember { if (completed) Routes.HOME else Routes.WELCOME }
+                    val isListenerEnabled by viewModel.isSmsListenerEnabled.collectAsState()
+                    // Waits for the saved values, so returning users never see the welcome
+                    // screen, and Home never shows "Paused" while the setting loads.
+                    if (onboardingCompleted != null && isListenerEnabled != null) {
+                        val startDestination = remember {
+                            if (onboardingCompleted == true) Routes.HOME else Routes.WELCOME
+                        }
                         SynapseNavHost(startDestination)
                     }
                 }
@@ -93,15 +107,27 @@ class MainActivity : ComponentActivity() {
         val smsAllowedMessage = stringResource(OnboardingR.string.sms_access_allowed)
 
         // Collect state from ViewModels
-        val isListenerEnabled by viewModel.isSmsListenerEnabled.collectAsState()
+        val isListenerEnabled = viewModel.isSmsListenerEnabled.collectAsState().value == true
         val triggers by viewModel.triggers.collectAsState()
+        val isLoadingTriggers by viewModel.isLoading.collectAsState()
         val hasRequestedSms by onboardingViewModel.hasRequestedSmsPermission.collectAsState()
+
+        // Set when Home's "Allow SMS access" opens the app's settings page: on the way back,
+        // Synapse listens if access is now allowed.
+        var listenWhenAllowed by rememberSaveable { mutableStateOf(false) }
 
         // Android decides whether Synapse can listen, and the user can revoke SMS access in
         // Settings at any time, so check again whenever the app comes back.
         var smsGranted by remember { mutableStateOf(isSmsPermissionGranted()) }
         LifecycleResumeEffect(Unit) {
             smsGranted = isSmsPermissionGranted()
+            if (listenWhenAllowed) {
+                listenWhenAllowed = false
+                if (smsGranted) {
+                    startListening()
+                    scope.launch { snackbarHostState.showSnackbar(smsAllowedMessage) }
+                }
+            }
             onPauseOrDispose { }
         }
 
@@ -109,7 +135,18 @@ class MainActivity : ComponentActivity() {
         // say) or access was just allowed in Settings: start it, so "on" stays true.
         LaunchedEffect(isListenerEnabled, smsGranted) {
             if (isListenerEnabled && smsGranted && !SmsListenerService.isRunning) {
-                startSmsListenerService(showToast = false)
+                startSmsListenerService()
+            }
+        }
+
+        // For Home's "Allow SMS access" when Android can still ask.
+        val requestSms = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            onboardingViewModel.onSmsPermissionRequested()
+            if (granted) {
+                smsGranted = true
+                startListening()
             }
         }
 
@@ -123,10 +160,27 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        fun finishWithSmsGranted(showToast: Boolean = true) {
+        fun finishWithSmsGranted() {
             smsGranted = true
-            startListening(showToast)
+            startListening()
             goHome()
+        }
+
+        // Home's "SMS access is off" card: the first time, explain before Android asks. After
+        // that, let Android ask again, or open the app's settings page once it won't.
+        fun allowSmsAccess() {
+            when (smsAccess(askedBefore = hasRequestedSms)) {
+                SmsAccess.Granted -> {
+                    smsGranted = true
+                    startListening()
+                }
+                SmsAccess.NotAsked -> navController.navigate(Routes.PERMISSIONS)
+                SmsAccess.Denied -> requestSms.launch(Manifest.permission.RECEIVE_SMS)
+                SmsAccess.Blocked -> {
+                    listenWhenAllowed = true
+                    openAppSettings()
+                }
+            }
         }
 
         fun onSmsResult(access: SmsAccess) {
@@ -193,8 +247,7 @@ class MainActivity : ComponentActivity() {
                     onBack = { navController.navigateUp() },
                     onGranted = {
                         onboardingViewModel.onSmsPermissionRequested()
-                        // The snackbar says it, so no toast on top of it.
-                        finishWithSmsGranted(showToast = false)
+                        finishWithSmsGranted()
                         scope.launch { snackbarHostState.showSnackbar(smsAllowedMessage) }
                     },
                     onNotNow = ::goHome
@@ -204,23 +257,21 @@ class MainActivity : ComponentActivity() {
             composable(Routes.HOME) {
                 TriggerListScreen(
                     // Never claims to listen without SMS access, whatever the saved setting.
-                    isServiceActive = isListenerEnabled && smsGranted,
-                    triggers = uiTriggers,
-                    snackbarHostState = snackbarHostState,
-                    onToggleService = { isEnabled ->
-                        if (!isEnabled) {
-                            stopListening()
-                        } else {
-                            when (smsAccess(askedBefore = hasRequestedSms)) {
-                                SmsAccess.Granted -> startListening()
-                                SmsAccess.NotAsked -> navController.navigate(Routes.PERMISSIONS)
-                                SmsAccess.Denied -> navController.navigate(Routes.SMS_DENIED)
-                                SmsAccess.Blocked -> navController.navigate(Routes.SMS_BLOCKED)
-                            }
-                        }
+                    listenerStatus = when {
+                        !smsGranted -> ListenerStatus.NeedsSmsAccess
+                        isListenerEnabled -> ListenerStatus.Listening
+                        else -> ListenerStatus.Paused
                     },
+                    triggers = if (isLoadingTriggers) null else uiTriggers,
+                    snackbarHostState = snackbarHostState,
+                    // The switch only shows with SMS access allowed.
+                    onListeningChange = { listen -> if (listen) startListening() else stopListening() },
+                    onAllowSmsAccess = ::allowSmsAccess,
                     onAddTrigger = {
-                        navController.navigate(Routes.ADD_TRIGGER)
+                        navController.navigate(Routes.addTrigger())
+                    },
+                    onUseTemplate = { template ->
+                        navController.navigate(Routes.addTrigger(template))
                     },
                     onEditTrigger = { trigger ->
                         navController.navigate("edit_trigger/${trigger.id}")
@@ -232,8 +283,20 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            composable(Routes.ADD_TRIGGER) {
+            composable(
+                route = Routes.ADD_TRIGGER,
+                arguments = listOf(
+                    navArgument("template") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val template = backStackEntry.arguments?.getString("template")
+                    ?.let { name -> TriggerTemplate.entries.firstOrNull { it.name == name } }
                 AddEditTriggerScreen(
+                    template = template,
                     onBack = { navController.navigateUp() },
                     onSave = { newTrigger, newSenderCondition, newMessageCondition, newAction ->
                         viewModel.createTriggerWithRelations(newTrigger.name, newTrigger.enabled,
@@ -273,32 +336,23 @@ class MainActivity : ComponentActivity() {
     }
 
     // Only called with SMS access granted, so the saved setting never says "on" while
-    // nothing can run.
-    private fun startListening(showToast: Boolean = true) {
-        startSmsListenerService(showToast)
+    // nothing can run. No toasts: Home's listener card shows the new state.
+    private fun startListening() {
+        startSmsListenerService()
         viewModel.setSmsListenerEnabled(true)
     }
 
     private fun stopListening() {
-        stopSmsListenerService()
+        stopService(Intent(this, SmsListenerService::class.java))
         viewModel.setSmsListenerEnabled(false)
     }
 
-    private fun startSmsListenerService(showToast: Boolean) {
+    private fun startSmsListenerService() {
         val serviceIntent = Intent(this, SmsListenerService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent)
         } else {
             startService(serviceIntent)
         }
-        if (showToast) {
-            Toast.makeText(this, "SMS Listener started", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun stopSmsListenerService() {
-        val serviceIntent = Intent(this, SmsListenerService::class.java)
-        stopService(serviceIntent)
-        Toast.makeText(this, "SMS Listener stopped", Toast.LENGTH_SHORT).show()
     }
 }

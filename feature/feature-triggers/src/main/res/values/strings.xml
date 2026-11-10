@@ -1,0 +1,37 @@
+<resources>
+    <!-- Home -->
+    <string name="home_title">Synapse</string>
+    <string name="home_triggers_heading">Triggers</string>
+    <string name="home_new_trigger">New trigger</string>
+
+    <!-- Listener status. Listening and paused toggle; "off" means SMS access is missing. -->
+    <string name="listener_on_title">Listening for SMS</string>
+    <string name="listener_on_no_triggers">No triggers yet, so nothing is sent</string>
+    <plurals name="listener_on_triggers">
+        <item quantity="one">%1$d of %2$d trigger on</item>
+        <item quantity="other">%1$d of %2$d triggers on</item>
+    </plurals>
+    <string name="listener_paused_title">Paused</string>
+    <string name="listener_paused_body">Incoming SMS aren\'t checked.</string>
+    <plurals name="listener_paused_triggers">
+        <item quantity="one">Incoming SMS aren\'t checked. %d trigger runs when you turn listening on.</item>
+        <item quantity="other">Incoming SMS aren\'t checked. %d triggers run when you turn listening on.</item>
+    </plurals>
+    <string name="listener_no_access_title">SMS access is off</string>
+    <string name="listener_no_access_body">Synapse can\'t listen until you allow it.</string>
+    <plurals name="listener_no_access_triggers">
+        <item quantity="one">Synapse can\'t listen until you allow it. Your %d trigger is saved.</item>
+        <item quantity="other">Synapse can\'t listen until you allow it. Your %d triggers are saved.</item>
+    </plurals>
+    <string name="listener_allow_sms">Allow SMS access</string>
+
+    <!-- No triggers yet -->
+    <string name="empty_title">Create your first trigger</string>
+    <string name="empty_body">A trigger checks each incoming SMS against your rules and calls your webhook when they all match.</string>
+    <string name="empty_examples_label">Start from an example</string>
+
+    <!-- Examples: the chip label is also the new trigger's name. -->
+    <string name="template_bank_alerts">Bank alerts</string>
+    <string name="template_delivery_updates">Delivery updates</string>
+    <string name="template_one_time_codes">One-time codes</string>
+</resources>

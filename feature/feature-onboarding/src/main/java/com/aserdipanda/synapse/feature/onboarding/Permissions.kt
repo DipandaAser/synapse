@@ -38,7 +38,7 @@ internal val asksForNotifications: Boolean
     get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
 /** Opens Synapse's page in Android Settings, where blocked permissions can still be allowed. */
-internal fun Context.openAppSettings() {
+fun Context.openAppSettings() {
     val appDetails = Intent(
         Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
         Uri.fromParts("package", packageName, null),
