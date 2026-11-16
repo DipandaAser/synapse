@@ -57,6 +57,7 @@ dependencies {
     implementation(project(":feature:feature-onboarding"))
     implementation(project(":feature:feature-triggers"))
     implementation(project(":service:service-sms"))
+    implementation(project(":service:service-triggers"))
 
     // COMPOSE BOM setup
     val composeBom = platform(libs.androidx.compose.bom)

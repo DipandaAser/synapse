@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.CommentsDisabled
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -32,7 +31,6 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.aserdipanda.core.ui.theme.SynapseAppTheme
 import com.aserdipanda.synapse.feature.onboarding.R
 import com.aserdipanda.synapse.feature.onboarding.SmsAccess
-import com.aserdipanda.synapse.feature.onboarding.areNotificationsAllowed
 import com.aserdipanda.synapse.feature.onboarding.isSmsPermissionGranted
 import com.aserdipanda.synapse.feature.onboarding.shouldShowSmsRationale
 import com.aserdipanda.synapse.feature.onboarding.smsAccessOf
@@ -50,7 +48,6 @@ fun SmsDeniedScreen(
     val context = LocalContext.current
     val activity = LocalActivity.current
     val currentOnResult by rememberUpdatedState(onResult)
-    var notificationsAllowed by remember { mutableStateOf(context.areNotificationsAllowed()) }
     var grantedReported by remember { mutableStateOf(false) }
 
     fun report(access: SmsAccess) {
@@ -73,13 +70,11 @@ fun SmsDeniedScreen(
 
     // Access may also change in Settings while Synapse is in the background.
     LifecycleResumeEffect(Unit) {
-        notificationsAllowed = context.areNotificationsAllowed()
         if (context.isSmsPermissionGranted()) report(SmsAccess.Granted)
         onPauseOrDispose { }
     }
 
     SmsDeniedContent(
-        notificationsAllowed = notificationsAllowed,
         onBack = onBack,
         onAllow = { requestSms.launch(Manifest.permission.RECEIVE_SMS) },
         onNotNow = onNotNow,
@@ -88,7 +83,6 @@ fun SmsDeniedScreen(
 
 @Composable
 private fun SmsDeniedContent(
-    notificationsAllowed: Boolean,
     onBack: () -> Unit,
     onAllow: () -> Unit,
     onNotNow: () -> Unit,
@@ -108,11 +102,6 @@ private fun SmsDeniedContent(
         OutlinedCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(vertical = 8.dp)) {
                 PermissionStatusRow(title = stringResource(R.string.onboarding_sms), allowed = false)
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                PermissionStatusRow(
-                    title = stringResource(R.string.onboarding_notifications),
-                    allowed = notificationsAllowed,
-                )
             }
         }
     }
@@ -145,6 +134,6 @@ private fun PermissionStatusRow(title: String, allowed: Boolean) {
 @Composable
 private fun SmsDeniedPreview() {
     SynapseAppTheme(dynamicColor = false) {
-        SmsDeniedContent(notificationsAllowed = true, onBack = {}, onAllow = {}, onNotNow = {})
+        SmsDeniedContent(onBack = {}, onAllow = {}, onNotNow = {})
     }
 }

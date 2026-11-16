@@ -118,6 +118,7 @@ jobs:
           - ':feature:feature-onboarding'
           - ':feature:feature-triggers'
           - ':service:service-sms'
+          - ':service:service-triggers'
 
     steps:
       - name: Checkout code

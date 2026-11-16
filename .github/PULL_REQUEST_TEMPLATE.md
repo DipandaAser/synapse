@@ -25,6 +25,7 @@
 - [ ] `:feature:feature-onboarding` - Welcome and permissions
 - [ ] `:feature:feature-triggers` - Triggers feature
 - [ ] `:service:service-sms` - SMS service
+- [ ] `:service:service-triggers` - Running triggers
 - [ ] Configuration files (Gradle, manifest, etc.)
 
 ## Related Issues

@@ -38,4 +38,5 @@ include(":feature:feature-triggers")
 
 // Service modules
 include(":service:service-sms")
+include(":service:service-triggers")
 include(":core:core-ui")

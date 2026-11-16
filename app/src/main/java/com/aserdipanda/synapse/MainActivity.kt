@@ -1,8 +1,6 @@
 package com.aserdipanda.synapse
 
 import android.Manifest
-import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -51,7 +49,7 @@ import com.aserdipanda.synapse.feature.triggers.ui.AddEditTriggerScreen
 import com.aserdipanda.synapse.feature.triggers.ui.ListenerStatus
 import com.aserdipanda.synapse.feature.triggers.ui.Trigger
 import com.aserdipanda.synapse.feature.triggers.ui.TriggerListScreen
-import com.aserdipanda.synapse.service.sms.SmsListenerService
+import com.aserdipanda.synapse.service.sms.SmsListener
 import kotlinx.coroutines.launch
 import com.aserdipanda.synapse.feature.onboarding.R as OnboardingR
 
@@ -131,12 +129,10 @@ class MainActivity : ComponentActivity() {
             onPauseOrDispose { }
         }
 
-        // Listening is on and allowed, but Android stopped the service (after an app update,
-        // say) or access was just allowed in Settings: start it, so "on" stays true.
-        LaunchedEffect(isListenerEnabled, smsGranted) {
-            if (isListenerEnabled && smsGranted && !SmsListenerService.isRunning) {
-                startSmsListenerService()
-            }
+        // Android keeps the SMS receiver's on/off state apart from the saved setting: apply
+        // the setting, including after an update from a version that listened with a service.
+        LaunchedEffect(isListenerEnabled) {
+            SmsListener.setEnabled(this@MainActivity, isListenerEnabled)
         }
 
         // For Home's "Allow SMS access" when Android can still ask.
@@ -336,23 +332,9 @@ class MainActivity : ComponentActivity() {
     }
 
     // Only called with SMS access granted, so the saved setting never says "on" while
-    // nothing can run. No toasts: Home's listener card shows the new state.
-    private fun startListening() {
-        startSmsListenerService()
-        viewModel.setSmsListenerEnabled(true)
-    }
+    // nothing can run. SynapseNavHost turns the SMS receiver on or off to match. No toasts:
+    // Home's listener card shows the new state.
+    private fun startListening() = viewModel.setSmsListenerEnabled(true)
 
-    private fun stopListening() {
-        stopService(Intent(this, SmsListenerService::class.java))
-        viewModel.setSmsListenerEnabled(false)
-    }
-
-    private fun startSmsListenerService() {
-        val serviceIntent = Intent(this, SmsListenerService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent)
-        } else {
-            startService(serviceIntent)
-        }
-    }
+    private fun stopListening() = viewModel.setSmsListenerEnabled(false)
 }

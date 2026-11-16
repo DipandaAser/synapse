@@ -3,7 +3,6 @@
     <string name="onboarding_back">Back</string>
     <string name="onboarding_not_now">Not now</string>
     <string name="onboarding_sms">SMS</string>
-    <string name="onboarding_notifications">Notifications</string>
     <string name="onboarding_allowed">Allowed</string>
     <string name="onboarding_not_allowed">Not allowed</string>
 
@@ -20,16 +19,11 @@
     <string name="welcome_private_body">No account, no Synapse server. Texts go only where your triggers send them.</string>
     <string name="welcome_get_started">Get started</string>
 
-    <!-- Permissions, before Android asks. Android 12 and earlier only ask for SMS. -->
-    <string name="permissions_title_both">Synapse needs two permissions</string>
-    <string name="permissions_title_sms">Synapse needs SMS access</string>
-    <string name="permissions_body_both">Android asks for each one next. Here is what they are for.</string>
-    <string name="permissions_body_sms">Android asks for it next. Here is what it is for.</string>
+    <!-- Permissions, before Android asks. -->
+    <string name="permissions_title">Synapse needs SMS access</string>
+    <string name="permissions_body">Android asks for it next. Here is what it is for.</string>
     <string name="permissions_sms_body">Read incoming texts so Synapse can check them against your triggers. A text leaves the phone only when a trigger sends it.</string>
-    <string name="permissions_notifications_tag">Android 13+</string>
-    <string name="permissions_notifications_body">Android shows a notification while Synapse listens in the background.</string>
-    <string name="permissions_note_both">You can change either one later in Android Settings.</string>
-    <string name="permissions_note_sms">You can change it later in Android Settings.</string>
+    <string name="permissions_note">You can change it later in Android Settings.</string>
     <string name="permissions_continue">Continue</string>
 
     <!-- SMS denied once: Android can still ask. -->

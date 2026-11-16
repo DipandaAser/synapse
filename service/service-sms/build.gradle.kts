@@ -33,17 +33,14 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:core-common"))
-    implementation(project(":core:core-network"))
     implementation(project(":data:data-triggers"))
+    implementation(project(":service:service-triggers"))
     
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.localbroadcastmanager)
     
     implementation(libs.bundles.room)
     ksp(libs.androidx.room.compiler)
-
-    implementation(libs.okhttp)
     
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)

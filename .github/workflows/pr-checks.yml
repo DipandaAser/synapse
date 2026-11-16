@@ -77,7 +77,8 @@ jobs:
             comment += '- :data:data-triggers\n';
             comment += '- :feature:feature-onboarding\n';
             comment += '- :feature:feature-triggers\n';
-            comment += '- :service:service-sms\n\n';
+            comment += '- :service:service-sms\n';
+            comment += '- :service:service-triggers\n\n';
             comment += 'Please ensure all checklist items in the PR template are completed.';
             
             github.rest.issues.createComment({
